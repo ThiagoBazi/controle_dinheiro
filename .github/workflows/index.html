@@ -1,0 +1,242 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+  <meta name="theme-color" content="#1769e0" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <meta name="apple-mobile-web-app-title" content="Meu Dinheiro" />
+  <link rel="manifest" href="manifest.webmanifest" />
+  <link rel="apple-touch-icon" href="apple-touch-icon.png" />
+  <title>Meu Dinheiro</title>
+  <style>
+    :root{
+      --bg:#f4f6fb; --card:#fff; --text:#142033; --muted:#6b7280; --line:#e5e7eb;
+      --primary:#1769e0; --good:#15803d; --bad:#c2413b; --warn:#b45309;
+      --shadow:0 8px 24px rgba(15,23,42,.07);
+    }
+    *{box-sizing:border-box}
+    body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;background:var(--bg);color:var(--text)}
+    button,input,select{font:inherit}
+    .app{max-width:1100px;margin:auto;padding:18px 16px 90px}
+    .top{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px}
+    .top h1{font-size:24px;margin:0}.top small{color:var(--muted)}
+    .hero{background:linear-gradient(135deg,#1769e0,#0f4fae);color:#fff;border-radius:22px;padding:22px;box-shadow:var(--shadow)}
+    .hero-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-top:14px}
+    .hero .label{font-size:12px;color:#dceaff}.hero .big{font-size:32px;font-weight:800;margin-top:4px}
+    .hero .metric{background:rgba(255,255,255,.12);padding:12px;border-radius:15px}
+    .hero .metric strong{display:block;font-size:18px;margin-top:4px}
+    .quick{display:flex;gap:10px;margin:16px 0;flex-wrap:wrap}
+    .btn{border:0;border-radius:14px;padding:13px 16px;font-weight:700;cursor:pointer}
+    .btn.primary{background:var(--primary);color:#fff}
+    .btn.light{background:#fff;color:var(--text);border:1px solid var(--line)}
+    .grid{display:grid;grid-template-columns:1.2fr .8fr;gap:16px}
+    .card{background:var(--card);border:1px solid var(--line);border-radius:20px;padding:18px;box-shadow:var(--shadow)}
+    .card h2{font-size:17px;margin:0 0 14px}
+    .summary{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+    .summary .box{background:#f8fafc;border:1px solid var(--line);border-radius:15px;padding:14px}
+    .summary .box span{font-size:12px;color:var(--muted)} .summary .box strong{display:block;font-size:20px;margin-top:4px}
+    .progress{height:12px;background:#e9eef8;border-radius:999px;overflow:hidden;margin:12px 0 4px}
+    .progress>div{height:100%;background:var(--primary);width:0%}
+    .muted{color:var(--muted);font-size:13px}
+    .list{display:flex;flex-direction:column;gap:10px}
+    .item{display:flex;justify-content:space-between;gap:10px;align-items:center;padding:12px;border:1px solid var(--line);border-radius:14px}
+    .item .left strong{display:block}.item .left small{color:var(--muted)}
+    .value.expense{color:var(--bad);font-weight:800}.value.income{color:var(--good);font-weight:800}.value.pending{color:var(--warn);font-weight:800}
+    .empty{padding:20px;text-align:center;color:var(--muted)}
+    .modal{position:fixed;inset:0;background:rgba(15,23,42,.55);display:none;align-items:flex-end;justify-content:center;padding:12px;z-index:20}
+    .modal.show{display:flex}
+    .sheet{background:#fff;width:min(520px,100%);border-radius:22px 22px 16px 16px;padding:18px}
+    .sheet h3{margin:0 0 14px}
+    .field{margin-bottom:12px}.field label{display:block;font-size:12px;color:var(--muted);margin-bottom:6px}
+    .field input,.field select{width:100%;padding:12px;border:1px solid var(--line);border-radius:12px;background:#fff}
+    .row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+    .sheet-actions{display:flex;gap:10px}.sheet-actions .btn{flex:1}
+    .nav{position:fixed;left:0;right:0;bottom:0;background:#fff;border-top:1px solid var(--line);display:flex;justify-content:center;padding-bottom:env(safe-area-inset-bottom)}
+    .nav-inner{width:min(700px,100%);display:grid;grid-template-columns:repeat(3,1fr)}
+    .nav button{background:none;border:0;padding:12px 8px;color:var(--muted)} .nav button.active{color:var(--primary);font-weight:800}
+    .section{display:none}.section.active{display:block}
+    @media(max-width:760px){
+      .app{padding:14px 12px 90px}
+      .hero-grid{grid-template-columns:1fr 1fr}.hero-grid .metric:last-child{grid-column:1/-1}
+      .grid{grid-template-columns:1fr}.summary{grid-template-columns:1fr}
+      .hero .big{font-size:29px}
+    }
+    @media(min-width:900px){
+      .app{padding:28px 24px 40px}.nav{position:static;border:0;background:transparent;margin-top:18px}
+      .nav-inner{width:100%;max-width:none;grid-template-columns:repeat(3,180px);justify-content:center;gap:10px}
+      .nav button{background:#fff;border:1px solid var(--line);border-radius:12px}
+    }
+  </style>
+</head>
+<body>
+<div class="app">
+  <div class="top">
+    <div><h1>Meu Dinheiro</h1><small>Controle simples do mês</small></div>
+    <button class="btn light" onclick="openSalary()">Salário</button>
+  </div>
+
+  <section id="inicio" class="section active">
+    <div class="hero">
+      <div class="label">Você ainda pode gastar neste mês</div>
+      <div class="big" id="remaining">R$ 0,00</div>
+      <div class="hero-grid">
+        <div class="metric"><div class="label">Salário do mês</div><strong id="salary">R$ 0,00</strong></div>
+        <div class="metric"><div class="label">Já gasto</div><strong id="spent">R$ 0,00</strong></div>
+        <div class="metric"><div class="label">Ainda tenho a pagar</div><strong id="pending">R$ 0,00</strong></div>
+      </div>
+    </div>
+
+    <div class="quick">
+      <button class="btn primary" onclick="openExpense()">+ Adicionar gasto</button>
+      <button class="btn light" onclick="openPending()">+ Conta a pagar</button>
+    </div>
+
+    <div class="grid">
+      <div class="card">
+        <h2>Resumo do mês</h2>
+        <div class="summary">
+          <div class="box"><span>Salário</span><strong id="sSalary">R$ 0,00</strong></div>
+          <div class="box"><span>Total já gasto</span><strong id="sSpent">R$ 0,00</strong></div>
+          <div class="box"><span>Sobra após contas pendentes</span><strong id="sFree">R$ 0,00</strong></div>
+        </div>
+        <div class="progress"><div id="progressBar"></div></div>
+        <div class="muted" id="progressText">0% do salário utilizado</div>
+      </div>
+
+      <div class="card">
+        <h2>Últimos gastos</h2>
+        <div id="recentList" class="list"></div>
+      </div>
+    </div>
+  </section>
+
+  <section id="gastos" class="section">
+    <div class="card">
+      <h2>Gastos do mês</h2>
+      <div id="expenseList" class="list"></div>
+    </div>
+  </section>
+
+  <section id="contas" class="section">
+    <div class="card">
+      <h2>O que ainda preciso pagar</h2>
+      <div id="pendingList" class="list"></div>
+    </div>
+  </section>
+</div>
+
+<div class="nav"><div class="nav-inner">
+  <button class="active" onclick="showSection('inicio',this)">Início</button>
+  <button onclick="showSection('gastos',this)">Gastos</button>
+  <button onclick="showSection('contas',this)">A pagar</button>
+</div></div>
+
+<div class="modal" id="modal">
+  <div class="sheet">
+    <h3 id="modalTitle">Adicionar</h3>
+    <div id="modalBody"></div>
+  </div>
+</div>
+
+<script>
+const KEY='meu_dinheiro_simples_v3';
+let data=JSON.parse(localStorage.getItem(KEY)||'null')||{
+  salary:0,
+  expenses:[],
+  pending:[]
+};
+function money(v){return Number(v||0).toLocaleString('pt-BR',{style:'currency',currency:'BRL'})}
+function save(){localStorage.setItem(KEY,JSON.stringify(data));render()}
+function monthKey(){let d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')}
+function currentExpenses(){return data.expenses.filter(x=>x.month===monthKey())}
+function currentPending(){return data.pending.filter(x=>!x.paid)}
+function totals(){
+  const spent=currentExpenses().reduce((s,x)=>s+Number(x.value),0);
+  const pending=currentPending().reduce((s,x)=>s+Number(x.value),0);
+  const remaining=data.salary-spent;
+  const free=data.salary-spent-pending;
+  return {spent,pending,remaining,free}
+}
+function render(){
+  const t=totals();
+  remaining.textContent=money(t.remaining);
+  salary.textContent=sSalary.textContent=money(data.salary);
+  spent.textContent=sSpent.textContent=money(t.spent);
+  pending.textContent=money(t.pending);
+  sFree.textContent=money(t.free);
+  const pct=data.salary>0?Math.min(100,Math.round((t.spent/data.salary)*100)):0;
+  progressBar.style.width=pct+'%';
+  progressText.textContent=pct+'% do salário utilizado';
+  renderLists();
+}
+function renderLists(){
+  const ex=currentExpenses().slice().reverse();
+  recentList.innerHTML=ex.length?ex.slice(0,4).map(itemExpense).join(''):'<div class="empty">Nenhum gasto lançado ainda.</div>';
+  expenseList.innerHTML=ex.length?ex.map(itemExpense).join(''):'<div class="empty">Nenhum gasto neste mês.</div>';
+  const pd=currentPending();
+  pendingList.innerHTML=pd.length?pd.map(itemPending).join(''):'<div class="empty">Você não tem contas pendentes.</div>';
+}
+function itemExpense(x){
+ return `<div class="item"><div class="left"><strong>${escapeHtml(x.name)}</strong><small>${escapeHtml(x.category||'Gasto')}</small></div><div class="value expense">- ${money(x.value)}</div></div>`
+}
+function itemPending(x){
+ return `<div class="item"><div class="left"><strong>${escapeHtml(x.name)}</strong><small>Conta pendente</small></div>
+ <div><div class="value pending">${money(x.value)}</div><button class="btn light" style="padding:7px 9px;margin-top:6px" onclick="payPending('${x.id}')">Marcar pago</button></div></div>`
+}
+function escapeHtml(s){return String(s).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]))}
+function showSection(id,btn){
+ document.querySelectorAll('.section').forEach(x=>x.classList.remove('active'));
+ document.getElementById(id).classList.add('active');
+ document.querySelectorAll('.nav button').forEach(x=>x.classList.remove('active'));
+ btn.classList.add('active');
+}
+function openModal(title,html){modalTitle.textContent=title;modalBody.innerHTML=html;modal.classList.add('show')}
+function closeModal(){modal.classList.remove('show')}
+modal.addEventListener('click',e=>{if(e.target===modal)closeModal()})
+function openSalary(){
+ openModal('Definir salário do mês',`
+ <div class="field"><label>Quanto você recebe por mês?</label><input id="fSalary" type="number" step="0.01" value="${data.salary||''}" placeholder="Ex.: 2000"></div>
+ <div class="sheet-actions"><button class="btn light" onclick="closeModal()">Cancelar</button><button class="btn primary" onclick="saveSalary()">Salvar</button></div>`)
+}
+function saveSalary(){data.salary=Number(document.getElementById('fSalary').value||0);save();closeModal()}
+function openExpense(){
+ openModal('Adicionar gasto',`
+ <div class="field"><label>O que você comprou/pagou?</label><input id="fName" placeholder="Ex.: Mercado"></div>
+ <div class="row">
+ <div class="field"><label>Valor</label><input id="fValue" type="number" step="0.01" placeholder="0,00"></div>
+ <div class="field"><label>Categoria</label><select id="fCat"><option>Alimentação</option><option>Transporte</option><option>Casa</option><option>Lazer</option><option>Saúde</option><option>Outros</option></select></div>
+ </div>
+ <div class="sheet-actions"><button class="btn light" onclick="closeModal()">Cancelar</button><button class="btn primary" onclick="saveExpense()">Adicionar</button></div>`)
+}
+function saveExpense(){
+ const n=document.getElementById('fName').value.trim(),v=Number(document.getElementById('fValue').value||0),c=document.getElementById('fCat').value;
+ if(!n||v<=0)return alert('Informe o nome e o valor.');
+ data.expenses.push({id:crypto.randomUUID?crypto.randomUUID():String(Date.now()),name:n,value:v,category:c,month:monthKey(),date:new Date().toISOString()});
+ save();closeModal()
+}
+function openPending(){
+ openModal('Adicionar conta a pagar',`
+ <div class="field"><label>O que você precisa pagar?</label><input id="pName" placeholder="Ex.: Tênis, internet, cartão"></div>
+ <div class="field"><label>Valor</label><input id="pValue" type="number" step="0.01" placeholder="0,00"></div>
+ <div class="muted" style="margin-bottom:12px">Sem prazo obrigatório. Ela ficará aqui até você marcar como paga.</div>
+ <div class="sheet-actions"><button class="btn light" onclick="closeModal()">Cancelar</button><button class="btn primary" onclick="savePending()">Adicionar</button></div>`)
+}
+function savePending(){
+ const n=document.getElementById('pName').value.trim(),v=Number(document.getElementById('pValue').value||0);
+ if(!n||v<=0)return alert('Informe o nome e o valor.');
+ data.pending.push({id:crypto.randomUUID?crypto.randomUUID():String(Date.now()),name:n,value:v,paid:false});
+ save();closeModal()
+}
+function payPending(id){
+ const p=data.pending.find(x=>x.id===id); if(!p)return;
+ p.paid=true;
+ data.expenses.push({id:crypto.randomUUID?crypto.randomUUID():String(Date.now()),name:p.name,value:p.value,category:'Conta paga',month:monthKey(),date:new Date().toISOString()});
+ save()
+}
+if('serviceWorker' in navigator) navigator.serviceWorker.register('./sw.js').catch(()=>{});
+render();
+</script>
+</body>
+</html>

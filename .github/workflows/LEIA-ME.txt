@@ -1,0 +1,12 @@
+MEU DINHEIRO - VERSÃO SIMPLES v3
+
+Foco:
+- definir salário do mês
+- registrar gastos do dia
+- registrar contas que ainda precisa pagar
+- ver quanto já gastou
+- ver quanto ainda pode gastar
+- ver quanto sobra considerando contas pendentes
+
+Sem vencimentos obrigatórios, metas complexas, parcelamento ou telas desnecessárias.
+Compatível com celular, tablet e computador.
