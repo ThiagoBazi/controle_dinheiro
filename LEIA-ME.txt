@@ -1,0 +1,16 @@
+MEU DINHEIRO - PWA PARA IPHONE
+
+Arquivos prontos para hospedagem HTTPS:
+- index.html
+- manifest.webmanifest
+- sw.js
+- icon-192.png
+- icon-512.png
+- apple-touch-icon.png
+
+IMPORTANTE:
+No iPhone, uma PWA precisa ser aberta por um endereço HTTPS (site).
+Depois:
+Safari > Compartilhar > Adicionar à Tela de Início.
+
+O app funciona em modo standalone e possui cache offline após a primeira abertura.
