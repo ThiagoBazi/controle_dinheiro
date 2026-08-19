@@ -1,12 +1,18 @@
-MEU DINHEIRO - VERSÃO SIMPLES v3
+MEU DINHEIRO - VERSÃO SIMPLES v4
 
-Foco:
-- definir salário do mês
-- registrar gastos do dia
-- registrar contas que ainda precisa pagar
-- ver quanto já gastou
-- ver quanto ainda pode gastar
-- ver quanto sobra considerando contas pendentes
+Novidades:
+- editar gastos
+- excluir gastos
+- editar contas pendentes
+- excluir contas pendentes
+- marcar conta pendente como paga
 
-Sem vencimentos obrigatórios, metas complexas, parcelamento ou telas desnecessárias.
+Continua simples e focado em:
+- salário do mês
+- gastos do dia
+- quanto já gastou
+- quanto ainda pode gastar
+- contas que ainda precisa pagar
+- quanto sobra considerando pendências
+
 Compatível com celular, tablet e computador.

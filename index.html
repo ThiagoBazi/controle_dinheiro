@@ -43,7 +43,7 @@
     .list{display:flex;flex-direction:column;gap:10px}
     .item{display:flex;justify-content:space-between;gap:10px;align-items:center;padding:12px;border:1px solid var(--line);border-radius:14px}
     .item .left strong{display:block}.item .left small{color:var(--muted)}
-    .value.expense{color:var(--bad);font-weight:800}.value.income{color:var(--good);font-weight:800}.value.pending{color:var(--warn);font-weight:800}
+    .value.expense{color:var(--bad);font-weight:800}.value.income{color:var(--good);font-weight:800}.value.pending{color:var(--warn);font-weight:800}.item-actions{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end;margin-top:6px}.mini{border:1px solid var(--line);background:#fff;border-radius:10px;padding:7px 9px;font-size:12px;font-weight:700;cursor:pointer}.mini.delete{color:var(--bad)}
     .empty{padding:20px;text-align:center;color:var(--muted)}
     .modal{position:fixed;inset:0;background:rgba(15,23,42,.55);display:none;align-items:flex-end;justify-content:center;padding:12px;z-index:20}
     .modal.show{display:flex}
@@ -179,11 +179,29 @@ function renderLists(){
   pendingList.innerHTML=pd.length?pd.map(itemPending).join(''):'<div class="empty">Você não tem contas pendentes.</div>';
 }
 function itemExpense(x){
- return `<div class="item"><div class="left"><strong>${escapeHtml(x.name)}</strong><small>${escapeHtml(x.category||'Gasto')}</small></div><div class="value expense">- ${money(x.value)}</div></div>`
+ return `<div class="item">
+   <div class="left"><strong>${escapeHtml(x.name)}</strong><small>${escapeHtml(x.category||'Gasto')}</small></div>
+   <div style="text-align:right">
+     <div class="value expense">- ${money(x.value)}</div>
+     <div class="item-actions">
+       <button class="mini" onclick="editExpense('${x.id}')">Editar</button>
+       <button class="mini delete" onclick="deleteExpense('${x.id}')">Excluir</button>
+     </div>
+   </div>
+ </div>`
 }
 function itemPending(x){
- return `<div class="item"><div class="left"><strong>${escapeHtml(x.name)}</strong><small>Conta pendente</small></div>
- <div><div class="value pending">${money(x.value)}</div><button class="btn light" style="padding:7px 9px;margin-top:6px" onclick="payPending('${x.id}')">Marcar pago</button></div></div>`
+ return `<div class="item">
+   <div class="left"><strong>${escapeHtml(x.name)}</strong><small>Conta pendente</small></div>
+   <div style="text-align:right">
+     <div class="value pending">${money(x.value)}</div>
+     <div class="item-actions">
+       <button class="mini" onclick="editPending('${x.id}')">Editar</button>
+       <button class="mini delete" onclick="deletePending('${x.id}')">Excluir</button>
+       <button class="mini" onclick="payPending('${x.id}')">Marcar pago</button>
+     </div>
+   </div>
+ </div>`
 }
 function escapeHtml(s){return String(s).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]))}
 function showSection(id,btn){
@@ -235,6 +253,60 @@ function payPending(id){
  data.expenses.push({id:crypto.randomUUID?crypto.randomUUID():String(Date.now()),name:p.name,value:p.value,category:'Conta paga',month:monthKey(),date:new Date().toISOString()});
  save()
 }
+
+function editExpense(id){
+ const x=data.expenses.find(e=>e.id===id); if(!x)return;
+ openModal('Editar gasto',`
+ <div class="field"><label>Descrição</label><input id="eName" value="${escapeHtml(x.name)}"></div>
+ <div class="row">
+   <div class="field"><label>Valor</label><input id="eValue" type="number" step="0.01" value="${x.value}"></div>
+   <div class="field"><label>Categoria</label>
+     <select id="eCat">
+       ${['Alimentação','Transporte','Casa','Lazer','Saúde','Outros','Conta paga'].map(c=>`<option ${x.category===c?'selected':''}>${c}</option>`).join('')}
+     </select>
+   </div>
+ </div>
+ <div class="sheet-actions">
+   <button class="btn light" onclick="closeModal()">Cancelar</button>
+   <button class="btn primary" onclick="saveExpenseEdit('${id}')">Salvar</button>
+ </div>`)
+}
+function saveExpenseEdit(id){
+ const x=data.expenses.find(e=>e.id===id); if(!x)return;
+ const n=document.getElementById('eName').value.trim();
+ const v=Number(document.getElementById('eValue').value||0);
+ const c=document.getElementById('eCat').value;
+ if(!n||v<=0)return alert('Informe o nome e o valor.');
+ x.name=n;x.value=v;x.category=c;save();closeModal();
+}
+function deleteExpense(id){
+ if(!confirm('Deseja realmente excluir este gasto?'))return;
+ data.expenses=data.expenses.filter(e=>e.id!==id);
+ save();
+}
+function editPending(id){
+ const x=data.pending.find(e=>e.id===id); if(!x)return;
+ openModal('Editar conta a pagar',`
+ <div class="field"><label>Descrição</label><input id="epName" value="${escapeHtml(x.name)}"></div>
+ <div class="field"><label>Valor</label><input id="epValue" type="number" step="0.01" value="${x.value}"></div>
+ <div class="sheet-actions">
+   <button class="btn light" onclick="closeModal()">Cancelar</button>
+   <button class="btn primary" onclick="savePendingEdit('${id}')">Salvar</button>
+ </div>`)
+}
+function savePendingEdit(id){
+ const x=data.pending.find(e=>e.id===id); if(!x)return;
+ const n=document.getElementById('epName').value.trim();
+ const v=Number(document.getElementById('epValue').value||0);
+ if(!n||v<=0)return alert('Informe o nome e o valor.');
+ x.name=n;x.value=v;save();closeModal();
+}
+function deletePending(id){
+ if(!confirm('Deseja realmente excluir esta conta pendente?'))return;
+ data.pending=data.pending.filter(e=>e.id!==id);
+ save();
+}
+
 if('serviceWorker' in navigator) navigator.serviceWorker.register('./sw.js').catch(()=>{});
 render();
 </script>
