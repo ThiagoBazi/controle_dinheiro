@@ -1,18 +1,9 @@
-MEU DINHEIRO - VERSÃO SIMPLES v4
+MEU DINHEIRO COMPARTILHADO v6
 
-Novidades:
-- editar gastos
-- excluir gastos
-- editar contas pendentes
-- excluir contas pendentes
-- marcar conta pendente como paga
+1) Antes de publicar, rode ATUALIZAR_BANCO_v6.sql no Editor SQL do Supabase.
+2) Depois substitua os arquivos do repositório GitHub Pages pelos arquivos desta pasta.
+3) Abra o app e crie sua conta.
+4) Crie 'Nosso Dinheiro' e copie o código de convite.
+5) A outra pessoa cria a própria conta e entra com esse código.
 
-Continua simples e focado em:
-- salário do mês
-- gastos do dia
-- quanto já gastou
-- quanto ainda pode gastar
-- contas que ainda precisa pagar
-- quanto sobra considerando pendências
-
-Compatível com celular, tablet e computador.
+Recursos: salário mensal, gastos, contas a pagar sem prazo, marcar como pago, editar/excluir, saldo restante e valor livre após contas, identificação de quem lançou, sincronização.
