@@ -68,10 +68,39 @@
       .nav-inner{width:100%;max-width:none;grid-template-columns:repeat(3,180px);justify-content:center;gap:10px}
       .nav button{background:#fff;border:1px solid var(--line);border-radius:12px}
     }
-  </style>
+  
+.auth-screen{position:fixed;inset:0;background:var(--bg);z-index:9999;display:flex;align-items:center;justify-content:center;padding:22px}
+.auth-card{width:min(460px,100%);background:var(--card);border:1px solid var(--line);border-radius:24px;padding:24px;box-shadow:0 18px 60px #0002}
+.auth-card h1{margin:0 0 8px}.auth-card p{color:var(--muted);margin:0 0 18px}
+.auth-card .field{margin-bottom:12px}.auth-card input{width:100%}
+.auth-actions{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.syncbar{font-size:12px;color:var(--muted);margin-top:8px}
+.accountbox{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:12px}
+.hidden{display:none!important}
+</style>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
-<div class="app">
+<div class="auth-screen" id="authScreen">
+ <div class="auth-card">
+  <h1>Meu Dinheiro</h1>
+  <p id="authText">Entre para sincronizar seus gastos com outra pessoa.</p>
+  <div id="loginBox">
+   <div class="field"><label>Seu nome</label><input id="authName" placeholder="Ex.: Thiago"></div>
+   <div class="field"><label>E-mail</label><input id="authEmail" type="email" autocomplete="email"></div>
+   <div class="field"><label>Senha</label><input id="authPassword" type="password" autocomplete="current-password"></div>
+   <div class="auth-actions"><button class="btn light" onclick="signUp()">Criar conta</button><button class="btn primary" onclick="signIn()">Entrar</button></div>
+  </div>
+  <div id="houseBox" class="hidden">
+   <div class="field"><label>Nome do espaço</label><input id="houseName" value="Nosso Dinheiro"></div>
+   <button class="btn primary" style="width:100%;margin-bottom:10px" onclick="createHouse()">Criar espaço compartilhado</button>
+   <div class="field"><label>Ou digite o código de convite</label><input id="inviteCode" placeholder="Ex.: ABC123"></div>
+   <button class="btn light" style="width:100%" onclick="joinHouse()">Entrar com código</button>
+  </div>
+ </div>
+</div>
+
+<div class="app"><div class="accountbox"><span id="sharedLabel">🔄 Conectando...</span><button class="mini" onclick="copyInvite()">Copiar convite</button><button class="mini" onclick="logout()">Sair</button></div><div class="syncbar" id="syncStatus"></div>
   <div class="top">
     <div><h1>Meu Dinheiro</h1><small>Controle simples do mês</small></div>
     <button class="btn light" onclick="openSalary()">Salário</button>
@@ -140,175 +169,153 @@
   </div>
 </div>
 
+
 <script>
-const KEY='meu_dinheiro_simples_v3';
-let data=JSON.parse(localStorage.getItem(KEY)||'null')||{
-  salary:0,
-  expenses:[],
-  pending:[]
-};
+const SUPABASE_URL="https://qpclvpnmlnwhrqshsuld.supabase.co";
+const SUPABASE_KEY="sb_publishable_e6-AsL3fWG2uV8WUsQogrQ_u8InKJr7";
+const sb=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
+const PROFILE_KEY='meu_dinheiro_profile_name';
+let session=null, household=null, data={salary:0,expenses:[],pending:[]};
+
 function money(v){return Number(v||0).toLocaleString('pt-BR',{style:'currency',currency:'BRL'})}
-function save(){localStorage.setItem(KEY,JSON.stringify(data));render()}
 function monthKey(){let d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')}
+function escapeHtml(s){return String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]))}
+function setSync(t){const el=document.getElementById('syncStatus');if(el)el.textContent=t}
+function profileName(){return localStorage.getItem(PROFILE_KEY)||session?.user?.email?.split('@')[0]||'Usuário'}
+
+async function signUp(){
+ const email=authEmail.value.trim(),password=authPassword.value,name=authName.value.trim();
+ if(!email||password.length<6)return alert('Informe e-mail e uma senha com pelo menos 6 caracteres.');
+ if(name)localStorage.setItem(PROFILE_KEY,name);
+ const {data:r,error}=await sb.auth.signUp({email,password});
+ if(error)return alert(error.message);
+ if(!r.session)return alert('Conta criada. Confira seu e-mail para confirmar o cadastro e depois entre no app.');
+ session=r.session; await afterLogin();
+}
+async function signIn(){
+ const email=authEmail.value.trim(),password=authPassword.value;
+ const {data:r,error}=await sb.auth.signInWithPassword({email,password});
+ if(error)return alert('Não foi possível entrar: '+error.message);
+ if(authName.value.trim())localStorage.setItem(PROFILE_KEY,authName.value.trim());
+ session=r.session; await afterLogin();
+}
+async function logout(){await sb.auth.signOut();location.reload()}
+
+async function afterLogin(){
+ const {data:m,error}=await sb.from('household_members').select('household_id,households(id,name,invite_code)').eq('user_id',session.user.id).limit(1);
+ if(error)console.warn(error);
+ if(m&&m.length){
+   household=m[0].households; authScreen.classList.add('hidden'); await loadCloud(); subscribeRealtime();
+ }else{
+   loginBox.classList.add('hidden');houseBox.classList.remove('hidden');authText.textContent='Crie um espaço ou entre no espaço compartilhado.';
+ }
+}
+
+function makeCode(){return Math.random().toString(36).slice(2,8).toUpperCase()}
+async function createHouse(){
+ const name=houseName.value.trim()||'Nosso Dinheiro';
+ const {data:r,error}=await sb.rpc('create_household',{p_name:name,p_invite_code:makeCode()});
+ if(error)return alert('Erro ao criar espaço: '+error.message);
+ household=r; authScreen.classList.add('hidden'); await loadCloud(); subscribeRealtime();
+}
+async function joinHouse(){
+ const code=inviteCode.value.trim().toUpperCase();
+ if(!code)return alert('Digite o código de convite.');
+ const {data:r,error}=await sb.rpc('join_household',{p_invite_code:code});
+ if(error)return alert('Não foi possível entrar: '+error.message);
+ household=r; authScreen.classList.add('hidden'); await loadCloud(); subscribeRealtime();
+}
+async function copyInvite(){
+ if(!household)return;
+ try{await navigator.clipboard.writeText(household.invite_code);alert('Código copiado: '+household.invite_code)}catch{prompt('Copie o código:',household.invite_code)}
+}
+
+async function loadCloud(){
+ if(!household)return;
+ setSync('Sincronizando...');
+ const month=monthKey();
+ const [s,e,p]=await Promise.all([
+   sb.from('household_settings').select('salary').eq('household_id',household.id).eq('month',month).maybeSingle(),
+   sb.from('expenses').select('*').eq('household_id',household.id).eq('month',month).order('created_at',{ascending:true}),
+   sb.from('pending_items').select('*').eq('household_id',household.id).eq('paid',false).order('created_at',{ascending:true})
+ ]);
+ if(s.error||e.error||p.error){console.warn(s.error,e.error,p.error);setSync('Erro ao sincronizar');return}
+ data.salary=Number(s.data?.salary||0);data.expenses=e.data||[];data.pending=p.data||[];
+ sharedLabel.textContent='👥 '+household.name+' • código '+household.invite_code;
+ setSync('Atualizado agora');render();
+}
+function subscribeRealtime(){
+ sb.channel('meu-dinheiro-'+household.id)
+ .on('postgres_changes',{event:'*',schema:'public',table:'expenses',filter:'household_id=eq.'+household.id},loadCloud)
+ .on('postgres_changes',{event:'*',schema:'public',table:'pending_items',filter:'household_id=eq.'+household.id},loadCloud)
+ .on('postgres_changes',{event:'*',schema:'public',table:'household_settings',filter:'household_id=eq.'+household.id},loadCloud)
+ .subscribe();
+ setInterval(loadCloud,15000);
+}
+
 function currentExpenses(){return data.expenses.filter(x=>x.month===monthKey())}
 function currentPending(){return data.pending.filter(x=>!x.paid)}
 function totals(){
-  const spent=currentExpenses().reduce((s,x)=>s+Number(x.value),0);
-  const pending=currentPending().reduce((s,x)=>s+Number(x.value),0);
-  const remaining=data.salary-spent;
-  const free=data.salary-spent-pending;
-  return {spent,pending,remaining,free}
+ const spent=currentExpenses().reduce((s,x)=>s+Number(x.value),0);
+ const pending=currentPending().reduce((s,x)=>s+Number(x.value),0);
+ return {spent,pending,remaining:data.salary-spent,free:data.salary-spent-pending}
 }
 function render(){
-  const t=totals();
-  remaining.textContent=money(t.remaining);
-  salary.textContent=sSalary.textContent=money(data.salary);
-  spent.textContent=sSpent.textContent=money(t.spent);
-  pending.textContent=money(t.pending);
-  sFree.textContent=money(t.free);
-  const pct=data.salary>0?Math.min(100,Math.round((t.spent/data.salary)*100)):0;
-  progressBar.style.width=pct+'%';
-  progressText.textContent=pct+'% do salário utilizado';
-  renderLists();
+ const t=totals();
+ remaining.textContent=money(t.remaining);salary.textContent=sSalary.textContent=money(data.salary);
+ spent.textContent=sSpent.textContent=money(t.spent);pending.textContent=money(t.pending);sFree.textContent=money(t.free);
+ const pct=data.salary>0?Math.min(100,Math.round((t.spent/data.salary)*100)):0;
+ progressBar.style.width=pct+'%';progressText.textContent=pct+'% do salário utilizado';renderLists();
 }
 function renderLists(){
-  const ex=currentExpenses().slice().reverse();
-  recentList.innerHTML=ex.length?ex.slice(0,4).map(itemExpense).join(''):'<div class="empty">Nenhum gasto lançado ainda.</div>';
-  expenseList.innerHTML=ex.length?ex.map(itemExpense).join(''):'<div class="empty">Nenhum gasto neste mês.</div>';
-  const pd=currentPending();
-  pendingList.innerHTML=pd.length?pd.map(itemPending).join(''):'<div class="empty">Você não tem contas pendentes.</div>';
+ const ex=currentExpenses().slice().reverse();
+ recentList.innerHTML=ex.length?ex.slice(0,4).map(itemExpense).join(''):'<div class="empty">Nenhum gasto lançado ainda.</div>';
+ expenseList.innerHTML=ex.length?ex.map(itemExpense).join(''):'<div class="empty">Nenhum gasto neste mês.</div>';
+ const pd=currentPending();pendingList.innerHTML=pd.length?pd.map(itemPending).join(''):'<div class="empty">Você não tem contas pendentes.</div>';
 }
-function itemExpense(x){
- return `<div class="item">
-   <div class="left"><strong>${escapeHtml(x.name)}</strong><small>${escapeHtml(x.category||'Gasto')}</small></div>
-   <div style="text-align:right">
-     <div class="value expense">- ${money(x.value)}</div>
-     <div class="item-actions">
-       <button class="mini" onclick="editExpense('${x.id}')">Editar</button>
-       <button class="mini delete" onclick="deleteExpense('${x.id}')">Excluir</button>
-     </div>
-   </div>
- </div>`
-}
-function itemPending(x){
- return `<div class="item">
-   <div class="left"><strong>${escapeHtml(x.name)}</strong><small>Conta pendente</small></div>
-   <div style="text-align:right">
-     <div class="value pending">${money(x.value)}</div>
-     <div class="item-actions">
-       <button class="mini" onclick="editPending('${x.id}')">Editar</button>
-       <button class="mini delete" onclick="deletePending('${x.id}')">Excluir</button>
-       <button class="mini" onclick="payPending('${x.id}')">Marcar pago</button>
-     </div>
-   </div>
- </div>`
-}
-function escapeHtml(s){return String(s).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]))}
-function showSection(id,btn){
- document.querySelectorAll('.section').forEach(x=>x.classList.remove('active'));
- document.getElementById(id).classList.add('active');
- document.querySelectorAll('.nav button').forEach(x=>x.classList.remove('active'));
- btn.classList.add('active');
-}
-function openModal(title,html){modalTitle.textContent=title;modalBody.innerHTML=html;modal.classList.add('show')}
+function itemExpense(x){return `<div class="item"><div class="left"><strong>${escapeHtml(x.name)}</strong><small>${escapeHtml(x.category||'Gasto')} • ${escapeHtml(x.author_name||'')}</small></div><div style="text-align:right"><div class="value expense">- ${money(x.value)}</div><div class="item-actions"><button class="mini" onclick="editExpense('${x.id}')">Editar</button><button class="mini delete" onclick="deleteExpense('${x.id}')">Excluir</button></div></div></div>`}
+function itemPending(x){return `<div class="item"><div class="left"><strong>${escapeHtml(x.name)}</strong><small>Conta pendente • ${escapeHtml(x.author_name||'')}</small></div><div style="text-align:right"><div class="value pending">${money(x.value)}</div><div class="item-actions"><button class="mini" onclick="editPending('${x.id}')">Editar</button><button class="mini delete" onclick="deletePending('${x.id}')">Excluir</button><button class="mini" onclick="payPending('${x.id}')">Marcar pago</button></div></div></div>`}
+function showSection(id,btn){document.querySelectorAll('.section').forEach(x=>x.classList.remove('active'));document.getElementById(id).classList.add('active');document.querySelectorAll('.nav button').forEach(x=>x.classList.remove('active'));btn.classList.add('active')}
+function openModal(title,body){modalTitle.textContent=title;modalBody.innerHTML=body;modal.classList.add('show')}
 function closeModal(){modal.classList.remove('show')}
 modal.addEventListener('click',e=>{if(e.target===modal)closeModal()})
-function openSalary(){
- openModal('Definir salário do mês',`
- <div class="field"><label>Quanto você recebe por mês?</label><input id="fSalary" type="number" step="0.01" value="${data.salary||''}" placeholder="Ex.: 2000"></div>
- <div class="sheet-actions"><button class="btn light" onclick="closeModal()">Cancelar</button><button class="btn primary" onclick="saveSalary()">Salvar</button></div>`)
+function openSalary(){openModal('Definir salário do mês',`<div class="field"><label>Quanto você recebe por mês?</label><input id="fSalary" type="number" step="0.01" value="${data.salary||''}" placeholder="Ex.: 2000"></div><div class="sheet-actions"><button class="btn light" onclick="closeModal()">Cancelar</button><button class="btn primary" onclick="saveSalary()">Salvar</button></div>`)}
+async function saveSalary(){
+ const v=Number(fSalary.value||0);
+ const {error}=await sb.from('household_settings').upsert({household_id:household.id,month:monthKey(),salary:v},{onConflict:'household_id,month'});
+ if(error)return alert(error.message);closeModal();await loadCloud();
 }
-function saveSalary(){data.salary=Number(document.getElementById('fSalary').value||0);save();closeModal()}
-function openExpense(){
- openModal('Adicionar gasto',`
- <div class="field"><label>O que você comprou/pagou?</label><input id="fName" placeholder="Ex.: Mercado"></div>
- <div class="row">
- <div class="field"><label>Valor</label><input id="fValue" type="number" step="0.01" placeholder="0,00"></div>
- <div class="field"><label>Categoria</label><select id="fCat"><option>Alimentação</option><option>Transporte</option><option>Casa</option><option>Lazer</option><option>Saúde</option><option>Outros</option></select></div>
- </div>
- <div class="sheet-actions"><button class="btn light" onclick="closeModal()">Cancelar</button><button class="btn primary" onclick="saveExpense()">Adicionar</button></div>`)
+function openExpense(){openModal('Adicionar gasto',`<div class="field"><label>O que você comprou/pagou?</label><input id="fName" placeholder="Ex.: Mercado"></div><div class="row"><div class="field"><label>Valor</label><input id="fValue" type="number" step="0.01" placeholder="0,00"></div><div class="field"><label>Categoria</label><select id="fCat"><option>Alimentação</option><option>Transporte</option><option>Casa</option><option>Lazer</option><option>Saúde</option><option>Outros</option></select></div></div><div class="sheet-actions"><button class="btn light" onclick="closeModal()">Cancelar</button><button class="btn primary" onclick="saveExpense()">Adicionar</button></div>`)}
+async function saveExpense(){
+ const n=fName.value.trim(),v=Number(fValue.value||0),c=fCat.value;if(!n||v<=0)return alert('Informe o nome e o valor.');
+ const {error}=await sb.from('expenses').insert({household_id:household.id,name:n,value:v,category:c,month:monthKey(),author_id:session.user.id,author_name:profileName()});
+ if(error)return alert(error.message);closeModal();await loadCloud();
 }
-function saveExpense(){
- const n=document.getElementById('fName').value.trim(),v=Number(document.getElementById('fValue').value||0),c=document.getElementById('fCat').value;
- if(!n||v<=0)return alert('Informe o nome e o valor.');
- data.expenses.push({id:crypto.randomUUID?crypto.randomUUID():String(Date.now()),name:n,value:v,category:c,month:monthKey(),date:new Date().toISOString()});
- save();closeModal()
+function openPending(){openModal('Adicionar conta a pagar',`<div class="field"><label>O que você precisa pagar?</label><input id="pName" placeholder="Ex.: Tênis, internet, cartão"></div><div class="field"><label>Valor</label><input id="pValue" type="number" step="0.01" placeholder="0,00"></div><div class="muted" style="margin-bottom:12px">Sem prazo. Ela fica aqui até ser marcada como paga.</div><div class="sheet-actions"><button class="btn light" onclick="closeModal()">Cancelar</button><button class="btn primary" onclick="savePending()">Adicionar</button></div>`)}
+async function savePending(){
+ const n=pName.value.trim(),v=Number(pValue.value||0);if(!n||v<=0)return alert('Informe o nome e o valor.');
+ const {error}=await sb.from('pending_items').insert({household_id:household.id,name:n,value:v,paid:false,author_id:session.user.id,author_name:profileName()});
+ if(error)return alert(error.message);closeModal();await loadCloud();
 }
-function openPending(){
- openModal('Adicionar conta a pagar',`
- <div class="field"><label>O que você precisa pagar?</label><input id="pName" placeholder="Ex.: Tênis, internet, cartão"></div>
- <div class="field"><label>Valor</label><input id="pValue" type="number" step="0.01" placeholder="0,00"></div>
- <div class="muted" style="margin-bottom:12px">Sem prazo obrigatório. Ela ficará aqui até você marcar como paga.</div>
- <div class="sheet-actions"><button class="btn light" onclick="closeModal()">Cancelar</button><button class="btn primary" onclick="savePending()">Adicionar</button></div>`)
+async function payPending(id){
+ const p=data.pending.find(x=>x.id===id);if(!p)return;
+ const {error:e1}=await sb.from('expenses').insert({household_id:household.id,name:p.name,value:p.value,category:'Conta paga',month:monthKey(),author_id:session.user.id,author_name:profileName()});
+ if(e1)return alert(e1.message);
+ const {error:e2}=await sb.from('pending_items').update({paid:true}).eq('id',id);if(e2)return alert(e2.message);await loadCloud();
 }
-function savePending(){
- const n=document.getElementById('pName').value.trim(),v=Number(document.getElementById('pValue').value||0);
- if(!n||v<=0)return alert('Informe o nome e o valor.');
- data.pending.push({id:crypto.randomUUID?crypto.randomUUID():String(Date.now()),name:n,value:v,paid:false});
- save();closeModal()
-}
-function payPending(id){
- const p=data.pending.find(x=>x.id===id); if(!p)return;
- p.paid=true;
- data.expenses.push({id:crypto.randomUUID?crypto.randomUUID():String(Date.now()),name:p.name,value:p.value,category:'Conta paga',month:monthKey(),date:new Date().toISOString()});
- save()
-}
+function editExpense(id){const x=data.expenses.find(e=>e.id===id);if(!x)return;openModal('Editar gasto',`<div class="field"><label>Descrição</label><input id="eName" value="${escapeHtml(x.name)}"></div><div class="row"><div class="field"><label>Valor</label><input id="eValue" type="number" step="0.01" value="${x.value}"></div><div class="field"><label>Categoria</label><select id="eCat">${['Alimentação','Transporte','Casa','Lazer','Saúde','Outros','Conta paga'].map(c=>`<option ${x.category===c?'selected':''}>${c}</option>`).join('')}</select></div></div><div class="sheet-actions"><button class="btn light" onclick="closeModal()">Cancelar</button><button class="btn primary" onclick="saveExpenseEdit('${id}')">Salvar</button></div>`)}
+async function saveExpenseEdit(id){const n=eName.value.trim(),v=Number(eValue.value||0);if(!n||v<=0)return alert('Informe o nome e o valor.');const {error}=await sb.from('expenses').update({name:n,value:v,category:eCat.value}).eq('id',id);if(error)return alert(error.message);closeModal();await loadCloud()}
+async function deleteExpense(id){if(!confirm('Deseja realmente excluir este gasto?'))return;const {error}=await sb.from('expenses').delete().eq('id',id);if(error)return alert(error.message);await loadCloud()}
+function editPending(id){const x=data.pending.find(e=>e.id===id);if(!x)return;openModal('Editar conta a pagar',`<div class="field"><label>Descrição</label><input id="epName" value="${escapeHtml(x.name)}"></div><div class="field"><label>Valor</label><input id="epValue" type="number" step="0.01" value="${x.value}"></div><div class="sheet-actions"><button class="btn light" onclick="closeModal()">Cancelar</button><button class="btn primary" onclick="savePendingEdit('${id}')">Salvar</button></div>`)}
+async function savePendingEdit(id){const n=epName.value.trim(),v=Number(epValue.value||0);if(!n||v<=0)return alert('Informe o nome e o valor.');const {error}=await sb.from('pending_items').update({name:n,value:v}).eq('id',id);if(error)return alert(error.message);closeModal();await loadCloud()}
+async function deletePending(id){if(!confirm('Deseja realmente excluir esta conta pendente?'))return;const {error}=await sb.from('pending_items').delete().eq('id',id);if(error)return alert(error.message);await loadCloud()}
 
-function editExpense(id){
- const x=data.expenses.find(e=>e.id===id); if(!x)return;
- openModal('Editar gasto',`
- <div class="field"><label>Descrição</label><input id="eName" value="${escapeHtml(x.name)}"></div>
- <div class="row">
-   <div class="field"><label>Valor</label><input id="eValue" type="number" step="0.01" value="${x.value}"></div>
-   <div class="field"><label>Categoria</label>
-     <select id="eCat">
-       ${['Alimentação','Transporte','Casa','Lazer','Saúde','Outros','Conta paga'].map(c=>`<option ${x.category===c?'selected':''}>${c}</option>`).join('')}
-     </select>
-   </div>
- </div>
- <div class="sheet-actions">
-   <button class="btn light" onclick="closeModal()">Cancelar</button>
-   <button class="btn primary" onclick="saveExpenseEdit('${id}')">Salvar</button>
- </div>`)
-}
-function saveExpenseEdit(id){
- const x=data.expenses.find(e=>e.id===id); if(!x)return;
- const n=document.getElementById('eName').value.trim();
- const v=Number(document.getElementById('eValue').value||0);
- const c=document.getElementById('eCat').value;
- if(!n||v<=0)return alert('Informe o nome e o valor.');
- x.name=n;x.value=v;x.category=c;save();closeModal();
-}
-function deleteExpense(id){
- if(!confirm('Deseja realmente excluir este gasto?'))return;
- data.expenses=data.expenses.filter(e=>e.id!==id);
- save();
-}
-function editPending(id){
- const x=data.pending.find(e=>e.id===id); if(!x)return;
- openModal('Editar conta a pagar',`
- <div class="field"><label>Descrição</label><input id="epName" value="${escapeHtml(x.name)}"></div>
- <div class="field"><label>Valor</label><input id="epValue" type="number" step="0.01" value="${x.value}"></div>
- <div class="sheet-actions">
-   <button class="btn light" onclick="closeModal()">Cancelar</button>
-   <button class="btn primary" onclick="savePendingEdit('${id}')">Salvar</button>
- </div>`)
-}
-function savePendingEdit(id){
- const x=data.pending.find(e=>e.id===id); if(!x)return;
- const n=document.getElementById('epName').value.trim();
- const v=Number(document.getElementById('epValue').value||0);
- if(!n||v<=0)return alert('Informe o nome e o valor.');
- x.name=n;x.value=v;save();closeModal();
-}
-function deletePending(id){
- if(!confirm('Deseja realmente excluir esta conta pendente?'))return;
- data.pending=data.pending.filter(e=>e.id!==id);
- save();
-}
-
-if('serviceWorker' in navigator) navigator.serviceWorker.register('./sw.js').catch(()=>{});
-render();
+(async()=>{
+ const {data:r}=await sb.auth.getSession();session=r.session;
+ if(session)await afterLogin();
+})();
+if('serviceWorker' in navigator)navigator.serviceWorker.register('./sw.js').catch(()=>{});
 </script>
+
 </body>
 </html>
