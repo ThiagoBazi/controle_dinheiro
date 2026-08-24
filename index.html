@@ -124,7 +124,7 @@ button{cursor:pointer}
  </div>
 
  <div class="workspace">
-  <div><div class="name" id="sharedLabel">Conectando...</div><div class="sync" id="syncStatus"></div></div>
+  <div><div class="name" id="sharedLabel">Conectando...</div><div class="sync" id="syncStatus"></div><div class="sync" id="inviteDisplay" style="margin-top:4px;font-weight:800;color:var(--primary2)"></div></div>
   <button class="mini" onclick="logout()">Sair</button>
  </div>
 
@@ -189,7 +189,7 @@ button{cursor:pointer}
   <div class="tip" id="graphTip" style="margin-top:14px"></div>
  </section>
 
- <div class="version">Meu Dinheiro v7</div>
+ <div class="version">Meu Dinheiro v8</div>
 </div>
 
 <div class="nav"><div class="nav-inner">
@@ -238,16 +238,16 @@ function currentExpenses(){return data.expenses.filter(x=>x.month===monthKey())}
 function activePending(){return data.pending.filter(x=>!x.paid)}
 function filteredExpenses(){
  const all=currentExpenses();
- if(viewMode==='shared')return all.filter(isShared);
+ if(viewMode==='shared')return all;
  return all.filter(x=>isShared(x)||x.owner_user_id===viewMode)
 }
 function filteredPending(){
  const all=activePending();
- if(viewMode==='shared')return all.filter(isShared);
+ if(viewMode==='shared')return all;
  return all.filter(x=>isShared(x)||x.owner_user_id===viewMode)
 }
 function expenseValueForView(x){
- if(viewMode==='shared')return isShared(x)?Number(x.value):0;
+ if(viewMode==='shared')return Number(x.value);
  return itemShare(x,viewMode)
 }
 function salaryFor(uid,month=monthKey()){
@@ -257,7 +257,7 @@ function totals(){
  const ex=filteredExpenses(),pd=filteredPending();
  const spent=ex.reduce((s,x)=>s+expenseValueForView(x),0);
  const pending=pd.reduce((s,x)=>s+(viewMode==='shared'?Number(x.value):itemShare(x,viewMode)),0);
- if(viewMode==='shared')return{salary:0,spent,pending,remaining:0,free:0};
+ if(viewMode==='shared'){const salary=members.reduce((s,m)=>s+salaryFor(m.user_id),0);return{salary,spent,pending,remaining:salary-spent,free:salary-spent-pending};}
  const salary=salaryFor(viewMode);
  return{salary,spent,pending,remaining:salary-spent,free:salary-spent-pending}
 }
@@ -335,6 +335,7 @@ async function loadCloud(){
  data.settings=st.data||[];data.expenses=ex.data||[];data.pending=pd.data||[];
  if(!viewMode||(!members.some(m=>m.user_id===viewMode)&&viewMode!=='shared'))viewMode=session.user.id;
  sharedLabel.textContent=`👥 ${household.name} • ${members.length} pessoa${members.length===1?'':'s'}`;
+  inviteDisplay.textContent=household.invite_code?`Código para entrar: ${household.invite_code}`:'Código de convite indisponível';
  setSync('Atualizado agora');
  renderAll();
 }
@@ -392,7 +393,7 @@ function ownerChip(x){
 }
 function displayValue(x){
  const full=Number(x.value),shown=expenseValueForView(x);
- if(viewMode==='shared')return{main:full,note:`${money(full/splitCount())} por pessoa`};
+ if(viewMode==='shared')return{main:full,note:isShared(x)?'Compartilhado • valor total':'Individual • '+memberName(x.owner_user_id)};
  if(isShared(x))return{main:shown,note:`Total ${money(full)} • sua parte ${money(shown)}`};
  return{main:full,note:''}
 }
@@ -408,7 +409,7 @@ function itemExpense(x){
 }
 function pendingValue(x){
  const full=Number(x.value);
- if(viewMode==='shared')return{main:full,note:`${money(full/splitCount())} por pessoa`};
+ if(viewMode==='shared')return{main:full,note:isShared(x)?'Compartilhado • valor total':'Individual • '+memberName(x.owner_user_id)};
  if(isShared(x)){const part=full/splitCount();return{main:part,note:`Total ${money(full)} • sua parte ${money(part)}`}}
  return{main:full,note:''}
 }
@@ -500,7 +501,7 @@ async function deletePending(id){if(!confirm('Excluir esta conta pendente?'))ret
 
 function chartExpensesForMonth(month){
  const ex=data.expenses.filter(x=>x.month===month);
- if(viewMode==='shared')return ex.filter(isShared).map(x=>({...x,chart_value:Number(x.value)}));
+ if(viewMode==='shared')return ex.map(x=>({...x,chart_value:Number(x.value)}));
  return ex.filter(x=>isShared(x)||x.owner_user_id===viewMode).map(x=>({...x,chart_value:itemShare(x,viewMode)}))
 }
 function renderCharts(){
@@ -516,7 +517,7 @@ function renderCharts(){
  }
  const months=sixMonths(),vals=months.map(m=>chartExpensesForMonth(m).reduce((s,x)=>s+x.chart_value,0)),max=Math.max(...vals,1);
  monthBars.innerHTML=months.map((m,i)=>`<div class="bar-col"><div class="bar-value">${vals[i]?money(vals[i]).replace('R$ ','R$'):''}</div><div class="bar" style="height:${Math.max(2,vals[i]/max*135)}px"></div><div class="bar-label">${monthLabel(m)}</div></div>`).join('');
- if(viewMode==='shared')graphTip.textContent=`Os gráficos mostram apenas gastos marcados como “Nós dois”. O valor compartilhado é dividido igualmente entre ${splitCount()} pessoa${splitCount()===1?'':'s'} nas visões individuais.`;
+ if(viewMode==='shared')graphTip.textContent='Os gráficos de Nós dois somam todos os gastos individuais e compartilhados, sem duplicar os lançamentos compartilhados.';
  else graphTip.textContent=`Na visão de ${viewName()}, os gráficos contam 100% dos gastos individuais e somente a parte correspondente dos gastos de “Nós dois”.`;
 }
 
