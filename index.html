@@ -1,90 +1,104 @@
 <!doctype html>
 <html lang="pt-BR">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
-  <meta name="theme-color" content="#1769e0" />
-  <meta name="apple-mobile-web-app-capable" content="yes" />
-  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
-  <meta name="apple-mobile-web-app-title" content="Meu Dinheiro" />
-  <link rel="manifest" href="manifest.webmanifest" />
-  <link rel="apple-touch-icon" href="apple-touch-icon.png" />
-  <title>Meu Dinheiro</title>
-  <style>
-    :root{
-      --bg:#f4f6fb; --card:#fff; --text:#142033; --muted:#6b7280; --line:#e5e7eb;
-      --primary:#1769e0; --good:#15803d; --bad:#c2413b; --warn:#b45309;
-      --shadow:0 8px 24px rgba(15,23,42,.07);
-    }
-    *{box-sizing:border-box}
-    body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;background:var(--bg);color:var(--text)}
-    button,input,select{font:inherit}
-    .app{max-width:1100px;margin:auto;padding:18px 16px 90px}
-    .top{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px}
-    .top h1{font-size:24px;margin:0}.top small{color:var(--muted)}
-    .hero{background:linear-gradient(135deg,#1769e0,#0f4fae);color:#fff;border-radius:22px;padding:22px;box-shadow:var(--shadow)}
-    .hero-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-top:14px}
-    .hero .label{font-size:12px;color:#dceaff}.hero .big{font-size:32px;font-weight:800;margin-top:4px}
-    .hero .metric{background:rgba(255,255,255,.12);padding:12px;border-radius:15px}
-    .hero .metric strong{display:block;font-size:18px;margin-top:4px}
-    .quick{display:flex;gap:10px;margin:16px 0;flex-wrap:wrap}
-    .btn{border:0;border-radius:14px;padding:13px 16px;font-weight:700;cursor:pointer}
-    .btn.primary{background:var(--primary);color:#fff}
-    .btn.light{background:#fff;color:var(--text);border:1px solid var(--line)}
-    .grid{display:grid;grid-template-columns:1.2fr .8fr;gap:16px}
-    .card{background:var(--card);border:1px solid var(--line);border-radius:20px;padding:18px;box-shadow:var(--shadow)}
-    .card h2{font-size:17px;margin:0 0 14px}
-    .summary{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
-    .summary .box{background:#f8fafc;border:1px solid var(--line);border-radius:15px;padding:14px}
-    .summary .box span{font-size:12px;color:var(--muted)} .summary .box strong{display:block;font-size:20px;margin-top:4px}
-    .progress{height:12px;background:#e9eef8;border-radius:999px;overflow:hidden;margin:12px 0 4px}
-    .progress>div{height:100%;background:var(--primary);width:0%}
-    .muted{color:var(--muted);font-size:13px}
-    .list{display:flex;flex-direction:column;gap:10px}
-    .item{display:flex;justify-content:space-between;gap:10px;align-items:center;padding:12px;border:1px solid var(--line);border-radius:14px}
-    .item .left strong{display:block}.item .left small{color:var(--muted)}
-    .value.expense{color:var(--bad);font-weight:800}.value.income{color:var(--good);font-weight:800}.value.pending{color:var(--warn);font-weight:800}.item-actions{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end;margin-top:6px}.mini{border:1px solid var(--line);background:#fff;border-radius:10px;padding:7px 9px;font-size:12px;font-weight:700;cursor:pointer}.mini.delete{color:var(--bad)}
-    .empty{padding:20px;text-align:center;color:var(--muted)}
-    .modal{position:fixed;inset:0;background:rgba(15,23,42,.55);display:none;align-items:flex-end;justify-content:center;padding:12px;z-index:20}
-    .modal.show{display:flex}
-    .sheet{background:#fff;width:min(520px,100%);border-radius:22px 22px 16px 16px;padding:18px}
-    .sheet h3{margin:0 0 14px}
-    .field{margin-bottom:12px}.field label{display:block;font-size:12px;color:var(--muted);margin-bottom:6px}
-    .field input,.field select{width:100%;padding:12px;border:1px solid var(--line);border-radius:12px;background:#fff}
-    .row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-    .sheet-actions{display:flex;gap:10px}.sheet-actions .btn{flex:1}
-    .nav{position:fixed;left:0;right:0;bottom:0;background:#fff;border-top:1px solid var(--line);display:flex;justify-content:center;padding-bottom:env(safe-area-inset-bottom)}
-    .nav-inner{width:min(700px,100%);display:grid;grid-template-columns:repeat(3,1fr)}
-    .nav button{background:none;border:0;padding:12px 8px;color:var(--muted)} .nav button.active{color:var(--primary);font-weight:800}
-    .section{display:none}.section.active{display:block}
-    @media(max-width:760px){
-      .app{padding:14px 12px 90px}
-      .hero-grid{grid-template-columns:1fr 1fr}.hero-grid .metric:last-child{grid-column:1/-1}
-      .grid{grid-template-columns:1fr}.summary{grid-template-columns:1fr}
-      .hero .big{font-size:29px}
-    }
-    @media(min-width:900px){
-      .app{padding:28px 24px 40px}.nav{position:static;border:0;background:transparent;margin-top:18px}
-      .nav-inner{width:100%;max-width:none;grid-template-columns:repeat(3,180px);justify-content:center;gap:10px}
-      .nav button{background:#fff;border:1px solid var(--line);border-radius:12px}
-    }
-  
-.auth-screen{position:fixed;inset:0;background:var(--bg);z-index:9999;display:flex;align-items:center;justify-content:center;padding:22px}
-.auth-card{width:min(460px,100%);background:var(--card);border:1px solid var(--line);border-radius:24px;padding:24px;box-shadow:0 18px 60px #0002}
-.auth-card h1{margin:0 0 8px}.auth-card p{color:var(--muted);margin:0 0 18px}
-.auth-card .field{margin-bottom:12px}.auth-card input{width:100%}
-.auth-actions{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-.syncbar{font-size:12px;color:var(--muted);margin-top:8px}
-.accountbox{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:12px}
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#1769e0">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Meu Dinheiro">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<title>Meu Dinheiro</title>
+<style>
+:root{
+ --bg:#f4f6fb;--card:#fff;--text:#122039;--muted:#6b7280;--line:#e4e9f1;
+ --primary:#1769e0;--primary2:#0f4fae;--good:#14813d;--bad:#c43d37;--warn:#b66a09;
+ --soft:#eef4ff;--shadow:0 10px 30px rgba(15,23,42,.07)
+}
+*{box-sizing:border-box}
+html,body{margin:0;min-height:100%;background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif}
+button,input,select{font:inherit}
+button{cursor:pointer}
 .hidden{display:none!important}
+.app{max-width:1120px;margin:auto;padding:16px 14px 92px}
+.topbar{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:12px}
+.brand h1{margin:0;font-size:25px}.brand small{color:var(--muted)}
+.top-actions{display:flex;gap:8px;align-items:center;flex-wrap:wrap;justify-content:flex-end}
+.btn,.mini{border:0;border-radius:13px;font-weight:750}
+.btn{padding:12px 15px}.btn.primary{background:var(--primary);color:white}.btn.light{background:#fff;border:1px solid var(--line);color:var(--text)}
+.mini{padding:7px 9px;background:#fff;border:1px solid var(--line);font-size:12px}.mini.delete{color:var(--bad)}
+.workspace{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:13px}
+.workspace .name{font-size:13px;color:var(--muted)}
+.sync{font-size:11px;color:var(--muted)}
+.people-tabs{display:flex;gap:8px;overflow-x:auto;padding:2px 1px 10px;scrollbar-width:none}
+.people-tabs::-webkit-scrollbar{display:none}
+.person-tab{white-space:nowrap;border:1px solid var(--line);background:#fff;color:var(--muted);border-radius:999px;padding:10px 14px;font-weight:750}
+.person-tab.active{background:var(--text);color:#fff;border-color:var(--text)}
+.hero{background:linear-gradient(135deg,var(--primary),var(--primary2));color:#fff;border-radius:23px;padding:20px;box-shadow:var(--shadow)}
+.hero-kicker{font-size:12px;color:#dbeafe}.hero-value{font-size:32px;font-weight:850;margin:5px 0 15px}
+.hero-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.hero-metric{background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.08);border-radius:15px;padding:12px}
+.hero-metric span{font-size:11px;color:#dbeafe;display:block}.hero-metric strong{display:block;margin-top:4px;font-size:17px}
+.quick{display:flex;gap:9px;flex-wrap:wrap;margin:14px 0}
+.quick .btn{flex:0 0 auto}
+.grid{display:grid;grid-template-columns:1.15fr .85fr;gap:14px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:20px;padding:17px;box-shadow:var(--shadow)}
+.card h2{font-size:16px;margin:0 0 13px}.card h3{font-size:14px;margin:0 0 10px}
+.summary{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.stat{padding:13px;background:#f8fafc;border:1px solid var(--line);border-radius:14px}
+.stat span{font-size:11px;color:var(--muted);display:block}.stat strong{display:block;margin-top:4px;font-size:19px}
+.progress{height:10px;border-radius:99px;background:#e8edf5;overflow:hidden;margin-top:12px}.progress>div{height:100%;background:var(--primary);width:0}
+.progress-label{font-size:11px;color:var(--muted);margin-top:5px}
+.list{display:flex;flex-direction:column;gap:9px}
+.item{border:1px solid var(--line);border-radius:15px;padding:12px;display:flex;justify-content:space-between;gap:12px;align-items:flex-start}
+.item-main{min-width:0}.item-main strong{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.meta{font-size:11px;color:var(--muted);margin-top:4px;line-height:1.45}
+.chips{display:flex;flex-wrap:wrap;gap:5px;margin-top:7px}.chip{font-size:10px;font-weight:750;padding:4px 7px;border-radius:999px;background:var(--soft);color:var(--primary2)}
+.chip.shared{background:#f4ecff;color:#6f36a8}.chip.author{background:#f3f4f6;color:#56606f}
+.item-side{text-align:right;flex:0 0 auto}.amount{font-weight:850}.amount.expense{color:var(--bad)}.amount.pending{color:var(--warn)}
+.share-note{font-size:10px;color:var(--muted);margin-top:2px}
+.item-actions{display:flex;gap:5px;justify-content:flex-end;flex-wrap:wrap;margin-top:7px}
+.empty{text-align:center;color:var(--muted);font-size:13px;padding:20px 8px}
+.section{display:none}.section.active{display:block}
+.nav{position:fixed;z-index:40;left:0;right:0;bottom:0;background:#fff;border-top:1px solid var(--line);padding-bottom:env(safe-area-inset-bottom)}
+.nav-inner{max-width:720px;margin:auto;display:grid;grid-template-columns:repeat(4,1fr)}
+.nav button{border:0;background:none;padding:12px 5px;color:var(--muted);font-size:12px}.nav button.active{color:var(--primary);font-weight:850}
+.modal{position:fixed;z-index:100;inset:0;background:#0f172a88;display:none;align-items:flex-end;justify-content:center;padding:10px}.modal.show{display:flex}
+.sheet{background:#fff;border-radius:23px 23px 16px 16px;width:min(530px,100%);max-height:92vh;overflow:auto;padding:18px}
+.sheet h3{margin:0 0 14px}.field{margin-bottom:12px}.field label{display:block;color:var(--muted);font-size:12px;margin-bottom:6px}
+.field input,.field select{width:100%;border:1px solid var(--line);border-radius:12px;padding:12px;background:#fff;color:var(--text)}
+.row{display:grid;grid-template-columns:1fr 1fr;gap:10px}.sheet-actions{display:flex;gap:9px}.sheet-actions .btn{flex:1}
+.owner-options{display:grid;grid-template-columns:repeat(3,1fr);gap:7px}.owner-btn{border:1px solid var(--line);background:#fff;border-radius:12px;padding:11px 7px;font-weight:750;font-size:12px}.owner-btn.selected{border-color:var(--primary);background:var(--soft);color:var(--primary2)}
+.auth-screen{position:fixed;z-index:9999;inset:0;background:var(--bg);display:flex;align-items:center;justify-content:center;padding:20px}
+.auth-card{background:#fff;width:min(455px,100%);border:1px solid var(--line);border-radius:25px;padding:24px;box-shadow:0 20px 60px #0f172a18}
+.auth-card h1{font-size:34px;margin:0 0 7px}.auth-card>p{color:var(--muted);line-height:1.4;margin:0 0 18px}
+.auth-actions{display:grid;grid-template-columns:1fr 1fr;gap:9px}
+.graph-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.chart-wrap{display:grid;grid-template-columns:150px 1fr;gap:18px;align-items:center}
+.donut{width:145px;height:145px;border-radius:50%;position:relative;background:#e8edf5}.donut:after{content:"";position:absolute;inset:28px;border-radius:50%;background:#fff}
+.donut-center{position:absolute;z-index:2;inset:0;display:flex;align-items:center;justify-content:center;text-align:center;font-size:12px;font-weight:800;pointer-events:none}
+.legend{display:flex;flex-direction:column;gap:7px}.legend-row{display:grid;grid-template-columns:10px 1fr auto;gap:7px;align-items:center;font-size:11px}.dot{width:9px;height:9px;border-radius:50%}
+.bars{display:flex;align-items:flex-end;gap:8px;height:190px;padding:14px 4px 0}.bar-col{flex:1;height:100%;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;gap:5px;min-width:0}.bar{width:min(40px,75%);background:linear-gradient(var(--primary),var(--primary2));border-radius:8px 8px 3px 3px;min-height:2px}.bar-value{font-size:9px;color:var(--muted);white-space:nowrap}.bar-label{font-size:10px;color:var(--muted)}
+.tip{background:#f8fafc;border:1px solid var(--line);border-radius:14px;padding:12px;font-size:12px;color:#4b5563;line-height:1.45}
+.version{font-size:10px;color:#9ca3af;text-align:center;margin-top:14px}
+@media(max-width:760px){
+ .app{padding:13px 11px 88px}.hero-grid{grid-template-columns:1fr 1fr}.hero-metric:last-child{grid-column:1/-1}
+ .summary{grid-template-columns:1fr}.grid,.graph-grid{grid-template-columns:1fr}.chart-wrap{grid-template-columns:125px 1fr}.donut{width:120px;height:120px}.donut:after{inset:24px}
+ .topbar{align-items:center}.brand h1{font-size:23px}.btn{padding:11px 12px}.owner-options{grid-template-columns:1fr}.row{grid-template-columns:1fr}
+}
+@media(min-width:900px){
+ .app{padding:25px 22px 35px}.nav{position:static;background:transparent;border:0;margin-top:17px}.nav-inner{max-width:none;display:flex;justify-content:center;gap:9px}.nav button{background:#fff;border:1px solid var(--line);border-radius:12px;padding:10px 22px}
+}
 </style>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
+
 <div class="auth-screen" id="authScreen">
  <div class="auth-card">
   <h1>Meu Dinheiro</h1>
-  <p id="authText">Entre para sincronizar seus gastos com outra pessoa.</p>
+  <p id="authText">Cada pessoa tem sua conta, mas vocês podem compartilhar os mesmos gastos.</p>
   <div id="loginBox">
    <div class="field"><label>Seu nome</label><input id="authName" placeholder="Ex.: Thiago"></div>
    <div class="field"><label>E-mail</label><input id="authEmail" type="email" autocomplete="email"></div>
@@ -92,230 +106,425 @@
    <div class="auth-actions"><button class="btn light" onclick="signUp()">Criar conta</button><button class="btn primary" onclick="signIn()">Entrar</button></div>
   </div>
   <div id="houseBox" class="hidden">
-   <div class="field"><label>Nome do espaço</label><input id="houseName" value="Nosso Dinheiro"></div>
-   <button class="btn primary" style="width:100%;margin-bottom:10px" onclick="createHouse()">Criar espaço compartilhado</button>
-   <div class="field"><label>Ou digite o código de convite</label><input id="inviteCode" placeholder="Ex.: ABC123"></div>
+   <div class="field"><label>Nome do espaço compartilhado</label><input id="houseName" value="Nosso Dinheiro"></div>
+   <button class="btn primary" style="width:100%;margin-bottom:12px" onclick="createHouse()">Criar espaço</button>
+   <div class="field"><label>Ou entre com o código de convite</label><input id="inviteCode" placeholder="Ex.: ABC123"></div>
    <button class="btn light" style="width:100%" onclick="joinHouse()">Entrar com código</button>
   </div>
  </div>
 </div>
 
-<div class="app"><div class="accountbox"><span id="sharedLabel">🔄 Conectando...</span><button class="mini" onclick="copyInvite()">Copiar convite</button><button class="mini" onclick="logout()">Sair</button></div><div class="syncbar" id="syncStatus"></div>
-  <div class="top">
-    <div><h1>Meu Dinheiro</h1><small>Controle simples do mês</small></div>
-    <button class="btn light" onclick="openSalary()">Salário</button>
+<div class="app">
+ <div class="topbar">
+  <div class="brand"><h1>Meu Dinheiro</h1><small>Controle simples, individual e compartilhado</small></div>
+  <div class="top-actions">
+   <button class="btn light" onclick="shareInvite()">Compartilhar</button>
+   <button class="btn light" id="salaryBtn" onclick="openSalary()">Meu salário</button>
+  </div>
+ </div>
+
+ <div class="workspace">
+  <div><div class="name" id="sharedLabel">Conectando...</div><div class="sync" id="syncStatus"></div></div>
+  <button class="mini" onclick="logout()">Sair</button>
+ </div>
+
+ <div class="people-tabs" id="peopleTabs"></div>
+
+ <section id="inicio" class="section active">
+  <div class="hero">
+   <div class="hero-kicker" id="heroKicker">Ainda pode gastar neste mês</div>
+   <div class="hero-value" id="remaining">R$ 0,00</div>
+   <div class="hero-grid">
+    <div class="hero-metric"><span id="salaryLabel">Salário do mês</span><strong id="salary">R$ 0,00</strong></div>
+    <div class="hero-metric"><span id="spentLabel">Já gasto</span><strong id="spent">R$ 0,00</strong></div>
+    <div class="hero-metric"><span id="pendingLabel">Ainda a pagar</span><strong id="pending">R$ 0,00</strong></div>
+   </div>
   </div>
 
-  <section id="inicio" class="section active">
-    <div class="hero">
-      <div class="label">Você ainda pode gastar neste mês</div>
-      <div class="big" id="remaining">R$ 0,00</div>
-      <div class="hero-grid">
-        <div class="metric"><div class="label">Salário do mês</div><strong id="salary">R$ 0,00</strong></div>
-        <div class="metric"><div class="label">Já gasto</div><strong id="spent">R$ 0,00</strong></div>
-        <div class="metric"><div class="label">Ainda tenho a pagar</div><strong id="pending">R$ 0,00</strong></div>
-      </div>
-    </div>
+  <div class="quick">
+   <button class="btn primary" onclick="openExpense()">+ Adicionar gasto</button>
+   <button class="btn light" onclick="openPending()">+ Conta a pagar</button>
+  </div>
 
-    <div class="quick">
-      <button class="btn primary" onclick="openExpense()">+ Adicionar gasto</button>
-      <button class="btn light" onclick="openPending()">+ Conta a pagar</button>
+  <div class="grid">
+   <div class="card">
+    <h2 id="summaryTitle">Resumo do mês</h2>
+    <div class="summary">
+     <div class="stat"><span id="sumSalaryLabel">Salário</span><strong id="sSalary">R$ 0,00</strong></div>
+     <div class="stat"><span id="sumSpentLabel">Total gasto</span><strong id="sSpent">R$ 0,00</strong></div>
+     <div class="stat"><span id="sumFreeLabel">Sobra após pendências</span><strong id="sFree">R$ 0,00</strong></div>
     </div>
+    <div class="progress"><div id="progressBar"></div></div>
+    <div class="progress-label" id="progressText"></div>
+   </div>
+   <div class="card">
+    <h2>Últimos gastos</h2>
+    <div class="list" id="recentList"></div>
+   </div>
+  </div>
+ </section>
 
-    <div class="grid">
-      <div class="card">
-        <h2>Resumo do mês</h2>
-        <div class="summary">
-          <div class="box"><span>Salário</span><strong id="sSalary">R$ 0,00</strong></div>
-          <div class="box"><span>Total já gasto</span><strong id="sSpent">R$ 0,00</strong></div>
-          <div class="box"><span>Sobra após contas pendentes</span><strong id="sFree">R$ 0,00</strong></div>
-        </div>
-        <div class="progress"><div id="progressBar"></div></div>
-        <div class="muted" id="progressText">0% do salário utilizado</div>
-      </div>
+ <section id="gastos" class="section">
+  <div class="card"><h2 id="expenseTitle">Gastos do mês</h2><div class="list" id="expenseList"></div></div>
+ </section>
 
-      <div class="card">
-        <h2>Últimos gastos</h2>
-        <div id="recentList" class="list"></div>
-      </div>
+ <section id="contas" class="section">
+  <div class="card"><h2 id="pendingTitle">O que ainda precisa pagar</h2><div class="list" id="pendingList"></div></div>
+ </section>
+
+ <section id="graficos" class="section">
+  <div class="graph-grid">
+   <div class="card">
+    <h2>Gastos por categoria</h2>
+    <div class="chart-wrap">
+     <div style="position:relative"><div class="donut" id="donut"></div><div class="donut-center" id="donutCenter"></div></div>
+     <div class="legend" id="categoryLegend"></div>
     </div>
-  </section>
+   </div>
+   <div class="card">
+    <h2>Últimos 6 meses</h2>
+    <div class="bars" id="monthBars"></div>
+   </div>
+  </div>
+  <div class="tip" id="graphTip" style="margin-top:14px"></div>
+ </section>
 
-  <section id="gastos" class="section">
-    <div class="card">
-      <h2>Gastos do mês</h2>
-      <div id="expenseList" class="list"></div>
-    </div>
-  </section>
-
-  <section id="contas" class="section">
-    <div class="card">
-      <h2>O que ainda preciso pagar</h2>
-      <div id="pendingList" class="list"></div>
-    </div>
-  </section>
+ <div class="version">Meu Dinheiro v7</div>
 </div>
 
 <div class="nav"><div class="nav-inner">
-  <button class="active" onclick="showSection('inicio',this)">Início</button>
-  <button onclick="showSection('gastos',this)">Gastos</button>
-  <button onclick="showSection('contas',this)">A pagar</button>
+ <button class="active" onclick="showSection('inicio',this)">Início</button>
+ <button onclick="showSection('gastos',this)">Gastos</button>
+ <button onclick="showSection('contas',this)">A pagar</button>
+ <button onclick="showSection('graficos',this)">Gráficos</button>
 </div></div>
 
 <div class="modal" id="modal">
-  <div class="sheet">
-    <h3 id="modalTitle">Adicionar</h3>
-    <div id="modalBody"></div>
-  </div>
+ <div class="sheet"><h3 id="modalTitle"></h3><div id="modalBody"></div></div>
 </div>
-
 
 <script>
 const SUPABASE_URL="https://qpclvpnmlnwhrqshsuld.supabase.co";
 const SUPABASE_KEY="sb_publishable_e6-AsL3fWG2uV8WUsQogrQ_u8InKJr7";
 const sb=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
-const PROFILE_KEY='meu_dinheiro_profile_name';
-let session=null, household=null, data={salary:0,expenses:[],pending:[]};
+const PROFILE_KEY='meu_dinheiro_profile_name_v7';
+const LEGACY_PROFILE_KEY='meu_dinheiro_profile_name';
+let session=null,household=null,members=[],me=null,viewMode=null;
+let data={settings:[],expenses:[],pending:[]};
+let realtimeChannel=null,refreshTimer=null;
+
+const COLORS=['#1769e0','#16a34a','#e58b13','#9b51e0','#e14848','#0891b2','#64748b'];
 
 function money(v){return Number(v||0).toLocaleString('pt-BR',{style:'currency',currency:'BRL'})}
-function monthKey(){let d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')}
 function escapeHtml(s){return String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]))}
-function setSync(t){const el=document.getElementById('syncStatus');if(el)el.textContent=t}
-function profileName(){return localStorage.getItem(PROFILE_KEY)||session?.user?.email?.split('@')[0]||'Usuário'}
+function monthKey(d=new Date()){return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')}
+function sixMonths(){
+ const arr=[];let d=new Date();d.setDate(1);
+ for(let i=5;i>=0;i--){let x=new Date(d.getFullYear(),d.getMonth()-i,1);arr.push(monthKey(x))}
+ return arr
+}
+function monthLabel(m){const [y,mo]=m.split('-');return new Date(Number(y),Number(mo)-1,1).toLocaleDateString('pt-BR',{month:'short'}).replace('.','')}
+function memberName(uid){return members.find(m=>m.user_id===uid)?.display_name||'Usuário'}
+function myName(){return me?.display_name||localStorage.getItem(PROFILE_KEY)||localStorage.getItem(LEGACY_PROFILE_KEY)||session?.user?.user_metadata?.name||session?.user?.email?.split('@')[0]||'Eu'}
+function splitCount(){return Math.max(1,members.length)}
+function isShared(x){return x.owner_scope==='shared'||!x.owner_user_id&&x.owner_scope==='shared'}
+function itemShare(x,uid){
+ if(isShared(x))return Number(x.value)/splitCount();
+ return x.owner_user_id===uid?Number(x.value):0
+}
+function selectedMember(){return viewMode==='shared'?null:members.find(m=>m.user_id===viewMode)}
+function viewName(){return viewMode==='shared'?'Nós dois':(selectedMember()?.display_name||'Minha conta')}
+function currentExpenses(){return data.expenses.filter(x=>x.month===monthKey())}
+function activePending(){return data.pending.filter(x=>!x.paid)}
+function filteredExpenses(){
+ const all=currentExpenses();
+ if(viewMode==='shared')return all.filter(isShared);
+ return all.filter(x=>isShared(x)||x.owner_user_id===viewMode)
+}
+function filteredPending(){
+ const all=activePending();
+ if(viewMode==='shared')return all.filter(isShared);
+ return all.filter(x=>isShared(x)||x.owner_user_id===viewMode)
+}
+function expenseValueForView(x){
+ if(viewMode==='shared')return isShared(x)?Number(x.value):0;
+ return itemShare(x,viewMode)
+}
+function salaryFor(uid,month=monthKey()){
+ return Number(data.settings.find(s=>s.user_id===uid&&s.month===month)?.salary||0)
+}
+function totals(){
+ const ex=filteredExpenses(),pd=filteredPending();
+ const spent=ex.reduce((s,x)=>s+expenseValueForView(x),0);
+ const pending=pd.reduce((s,x)=>s+(viewMode==='shared'?Number(x.value):itemShare(x,viewMode)),0);
+ if(viewMode==='shared')return{salary:0,spent,pending,remaining:0,free:0};
+ const salary=salaryFor(viewMode);
+ return{salary,spent,pending,remaining:salary-spent,free:salary-spent-pending}
+}
+function setSync(t){syncStatus.textContent=t}
+function setLocalName(n){if(n){localStorage.setItem(PROFILE_KEY,n);localStorage.setItem(LEGACY_PROFILE_KEY,n)}}
 
 async function signUp(){
- const email=authEmail.value.trim(),password=authPassword.value,name=authName.value.trim();
+ const name=authName.value.trim(),email=authEmail.value.trim(),password=authPassword.value;
+ if(!name)return alert('Informe seu nome.');
  if(!email||password.length<6)return alert('Informe e-mail e uma senha com pelo menos 6 caracteres.');
- if(name)localStorage.setItem(PROFILE_KEY,name);
- const {data:r,error}=await sb.auth.signUp({email,password});
+ setLocalName(name);
+ const {data:r,error}=await sb.auth.signUp({email,password,options:{data:{name}}});
  if(error)return alert(error.message);
- if(!r.session)return alert('Conta criada. Confira seu e-mail para confirmar o cadastro e depois entre no app.');
- session=r.session; await afterLogin();
+ if(!r.session)return alert('Conta criada. Se receber um e-mail de confirmação, confirme e depois entre.');
+ session=r.session;await afterLogin();
 }
 async function signIn(){
- const email=authEmail.value.trim(),password=authPassword.value;
+ const email=authEmail.value.trim(),password=authPassword.value,name=authName.value.trim();
+ if(name)setLocalName(name);
  const {data:r,error}=await sb.auth.signInWithPassword({email,password});
  if(error)return alert('Não foi possível entrar: '+error.message);
- if(authName.value.trim())localStorage.setItem(PROFILE_KEY,authName.value.trim());
- session=r.session; await afterLogin();
+ session=r.session;await afterLogin();
 }
 async function logout(){await sb.auth.signOut();location.reload()}
 
 async function afterLogin(){
- const {data:m,error}=await sb.from('household_members').select('household_id,households(id,name,invite_code)').eq('user_id',session.user.id).limit(1);
+ const {data:m,error}=await sb.from('household_members').select('household_id,display_name,households(id,name,invite_code)').eq('user_id',session.user.id).limit(1);
  if(error)console.warn(error);
  if(m&&m.length){
-   household=m[0].households; authScreen.classList.add('hidden'); await loadCloud(); subscribeRealtime();
+   household=m[0].households;
+   const preferred=localStorage.getItem(PROFILE_KEY)||localStorage.getItem(LEGACY_PROFILE_KEY)||session.user.user_metadata?.name;
+   if(preferred){try{await sb.rpc('set_my_display_name_v7',{p_household_id:household.id,p_display_name:preferred})}catch(e){console.warn(e)}}
+   authScreen.classList.add('hidden');
+   await loadCloud();subscribeRealtime();
  }else{
-   loginBox.classList.add('hidden');houseBox.classList.remove('hidden');authText.textContent='Crie um espaço ou entre no espaço compartilhado.';
+   loginBox.classList.add('hidden');houseBox.classList.remove('hidden');
+   authText.textContent='Crie o espaço de vocês ou entre usando o código que recebeu.';
  }
 }
-
 function makeCode(){return Math.random().toString(36).slice(2,8).toUpperCase()}
 async function createHouse(){
- const name=houseName.value.trim()||'Nosso Dinheiro';
- const {data:r,error}=await sb.rpc('create_household',{p_name:name,p_invite_code:makeCode()});
+ const name=houseName.value.trim()||'Nosso Dinheiro',display=myName();
+ const {data:r,error}=await sb.rpc('create_household_v7',{p_name:name,p_invite_code:makeCode(),p_display_name:display});
  if(error)return alert('Erro ao criar espaço: '+error.message);
- household=r; authScreen.classList.add('hidden'); await loadCloud(); subscribeRealtime();
+ household=r;authScreen.classList.add('hidden');await loadCloud();subscribeRealtime();
 }
 async function joinHouse(){
- const code=inviteCode.value.trim().toUpperCase();
+ const code=inviteCode.value.trim().toUpperCase(),display=myName();
  if(!code)return alert('Digite o código de convite.');
- const {data:r,error}=await sb.rpc('join_household',{p_invite_code:code});
+ const {data:r,error}=await sb.rpc('join_household_v7',{p_invite_code:code,p_display_name:display});
  if(error)return alert('Não foi possível entrar: '+error.message);
- household=r; authScreen.classList.add('hidden'); await loadCloud(); subscribeRealtime();
+ household=r;authScreen.classList.add('hidden');await loadCloud();subscribeRealtime();
 }
-async function copyInvite(){
+async function shareInvite(){
  if(!household)return;
- try{await navigator.clipboard.writeText(household.invite_code);alert('Código copiado: '+household.invite_code)}catch{prompt('Copie o código:',household.invite_code)}
+ const text=`Entre no nosso Meu Dinheiro. Código do espaço: ${household.invite_code}\n${location.origin+location.pathname}`;
+ if(navigator.share){try{await navigator.share({title:'Meu Dinheiro',text});return}catch(e){}}
+ try{await navigator.clipboard.writeText(text);alert('Convite copiado.')}catch{prompt('Copie o convite:',text)}
 }
 
 async function loadCloud(){
  if(!household)return;
  setSync('Sincronizando...');
- const month=monthKey();
- const [s,e,p]=await Promise.all([
-   sb.from('household_settings').select('salary').eq('household_id',household.id).eq('month',month).maybeSingle(),
-   sb.from('expenses').select('*').eq('household_id',household.id).eq('month',month).order('created_at',{ascending:true}),
+ const months=sixMonths(),first=months[0];
+ const [mr,st,ex,pd]=await Promise.all([
+   sb.from('household_members').select('user_id,display_name').eq('household_id',household.id).order('created_at',{ascending:true}),
+   sb.from('member_settings').select('*').eq('household_id',household.id).gte('month',first),
+   sb.from('expenses').select('*').eq('household_id',household.id).gte('month',first).order('created_at',{ascending:true}),
    sb.from('pending_items').select('*').eq('household_id',household.id).eq('paid',false).order('created_at',{ascending:true})
  ]);
- if(s.error||e.error||p.error){console.warn(s.error,e.error,p.error);setSync('Erro ao sincronizar');return}
- data.salary=Number(s.data?.salary||0);data.expenses=e.data||[];data.pending=p.data||[];
- sharedLabel.textContent='👥 '+household.name+' • código '+household.invite_code;
- setSync('Atualizado agora');render();
+ if(mr.error||st.error||ex.error||pd.error){
+   console.warn(mr.error,st.error,ex.error,pd.error);setSync('Erro ao sincronizar');return;
+ }
+ members=mr.data||[];me=members.find(x=>x.user_id===session.user.id)||null;
+ data.settings=st.data||[];data.expenses=ex.data||[];data.pending=pd.data||[];
+ if(!viewMode||(!members.some(m=>m.user_id===viewMode)&&viewMode!=='shared'))viewMode=session.user.id;
+ sharedLabel.textContent=`👥 ${household.name} • ${members.length} pessoa${members.length===1?'':'s'}`;
+ setSync('Atualizado agora');
+ renderAll();
 }
 function subscribeRealtime(){
- sb.channel('meu-dinheiro-'+household.id)
- .on('postgres_changes',{event:'*',schema:'public',table:'expenses',filter:'household_id=eq.'+household.id},loadCloud)
- .on('postgres_changes',{event:'*',schema:'public',table:'pending_items',filter:'household_id=eq.'+household.id},loadCloud)
- .on('postgres_changes',{event:'*',schema:'public',table:'household_settings',filter:'household_id=eq.'+household.id},loadCloud)
- .subscribe();
- setInterval(loadCloud,15000);
+ if(realtimeChannel)sb.removeChannel(realtimeChannel);
+ realtimeChannel=sb.channel('money-v7-'+household.id)
+  .on('postgres_changes',{event:'*',schema:'public',table:'expenses',filter:'household_id=eq.'+household.id},loadCloud)
+  .on('postgres_changes',{event:'*',schema:'public',table:'pending_items',filter:'household_id=eq.'+household.id},loadCloud)
+  .on('postgres_changes',{event:'*',schema:'public',table:'member_settings',filter:'household_id=eq.'+household.id},loadCloud)
+  .on('postgres_changes',{event:'*',schema:'public',table:'household_members',filter:'household_id=eq.'+household.id},loadCloud)
+  .subscribe();
+ clearInterval(refreshTimer);refreshTimer=setInterval(loadCloud,12000);
 }
 
-function currentExpenses(){return data.expenses.filter(x=>x.month===monthKey())}
-function currentPending(){return data.pending.filter(x=>!x.paid)}
-function totals(){
- const spent=currentExpenses().reduce((s,x)=>s+Number(x.value),0);
- const pending=currentPending().reduce((s,x)=>s+Number(x.value),0);
- return {spent,pending,remaining:data.salary-spent,free:data.salary-spent-pending}
+function renderTabs(){
+ const tabs=[...members.map(m=>({id:m.user_id,label:m.display_name||'Usuário'})),{id:'shared',label:'Nós dois'}];
+ peopleTabs.innerHTML=tabs.map(t=>`<button class="person-tab ${viewMode===t.id?'active':''}" onclick="selectView('${t.id}')">${escapeHtml(t.label)}${t.id===session.user.id?' (eu)':''}</button>`).join('');
 }
-function render(){
- const t=totals();
- remaining.textContent=money(t.remaining);salary.textContent=sSalary.textContent=money(data.salary);
- spent.textContent=sSpent.textContent=money(t.spent);pending.textContent=money(t.pending);sFree.textContent=money(t.free);
- const pct=data.salary>0?Math.min(100,Math.round((t.spent/data.salary)*100)):0;
- progressBar.style.width=pct+'%';progressText.textContent=pct+'% do salário utilizado';renderLists();
+function selectView(id){viewMode=id;renderAll()}
+function renderAll(){renderTabs();renderSummary();renderLists();renderCharts()}
+function renderSummary(){
+ const t=totals(),name=viewName();
+ if(viewMode==='shared'){
+   heroKicker.textContent='Gastos marcados como "Nós dois" neste mês';
+   remaining.textContent=money(t.spent);
+   salaryLabel.textContent='Total compartilhado';salary.textContent=money(t.spent);
+   spentLabel.textContent='Parte por pessoa';spent.textContent=money(t.spent/splitCount());
+   pendingLabel.textContent='Compartilhado a pagar';pending.textContent=money(t.pending);
+   summaryTitle.textContent='Resumo compartilhado';
+   sumSalaryLabel.textContent='Gastos compartilhados';sSalary.textContent=money(t.spent);
+   sumSpentLabel.textContent='Sua metade';sSpent.textContent=money(t.spent/splitCount());
+   sumFreeLabel.textContent='Pendências compartilhadas';sFree.textContent=money(t.pending);
+   progressBar.style.width='0%';progressText.textContent=`Os valores compartilhados são divididos igualmente entre ${splitCount()} pessoa${splitCount()===1?'':'s'}.`;
+ }else{
+   heroKicker.textContent=`Quanto ${name} ainda pode gastar neste mês`;
+   remaining.textContent=money(t.remaining);
+   salaryLabel.textContent='Salário do mês';salary.textContent=money(t.salary);
+   spentLabel.textContent='Já gasto (com sua parte)';spent.textContent=money(t.spent);
+   pendingLabel.textContent='Ainda a pagar';pending.textContent=money(t.pending);
+   summaryTitle.textContent=`Resumo de ${name}`;
+   sumSalaryLabel.textContent='Salário';sSalary.textContent=money(t.salary);
+   sumSpentLabel.textContent='Total considerado';sSpent.textContent=money(t.spent);
+   sumFreeLabel.textContent='Sobra após pendências';sFree.textContent=money(t.free);
+   const pct=t.salary>0?Math.min(100,Math.round(t.spent/t.salary*100)):0;
+   progressBar.style.width=pct+'%';progressText.textContent=t.salary>0?`${pct}% do salário utilizado`:'Salário ainda não informado';
+ }
+ const own=viewMode===session.user.id;
+ salaryBtn.textContent=own?'Meu salário':'Meu salário';
+ expenseTitle.textContent=`Gastos • ${name}`;
+ pendingTitle.textContent=`A pagar • ${name}`;
+}
+function ownerChip(x){
+ if(isShared(x))return'<span class="chip shared">Nós dois</span>';
+ return `<span class="chip">${escapeHtml(memberName(x.owner_user_id))}</span>`
+}
+function displayValue(x){
+ const full=Number(x.value),shown=expenseValueForView(x);
+ if(viewMode==='shared')return{main:full,note:`${money(full/splitCount())} por pessoa`};
+ if(isShared(x))return{main:shown,note:`Total ${money(full)} • sua parte ${money(shown)}`};
+ return{main:full,note:''}
+}
+function itemExpense(x){
+ const v=displayValue(x);
+ return `<div class="item">
+  <div class="item-main"><strong>${escapeHtml(x.name)}</strong><div class="meta">${escapeHtml(x.category||'Gasto')}</div>
+   <div class="chips">${ownerChip(x)}<span class="chip author">Adicionado por ${escapeHtml(x.author_name||'Usuário')}</span></div>
+  </div>
+  <div class="item-side"><div class="amount expense">- ${money(v.main)}</div><div class="share-note">${v.note}</div>
+   <div class="item-actions"><button class="mini" onclick="editExpense('${x.id}')">Editar</button><button class="mini delete" onclick="deleteExpense('${x.id}')">Excluir</button></div>
+  </div></div>`
+}
+function pendingValue(x){
+ const full=Number(x.value);
+ if(viewMode==='shared')return{main:full,note:`${money(full/splitCount())} por pessoa`};
+ if(isShared(x)){const part=full/splitCount();return{main:part,note:`Total ${money(full)} • sua parte ${money(part)}`}}
+ return{main:full,note:''}
+}
+function itemPending(x){
+ const v=pendingValue(x);
+ return `<div class="item">
+  <div class="item-main"><strong>${escapeHtml(x.name)}</strong><div class="meta">Conta pendente</div>
+   <div class="chips">${ownerChip(x)}<span class="chip author">Adicionado por ${escapeHtml(x.author_name||'Usuário')}</span></div>
+  </div>
+  <div class="item-side"><div class="amount pending">${money(v.main)}</div><div class="share-note">${v.note}</div>
+   <div class="item-actions"><button class="mini" onclick="editPending('${x.id}')">Editar</button><button class="mini delete" onclick="deletePending('${x.id}')">Excluir</button><button class="mini" onclick="payPending('${x.id}')">Marcar pago</button></div>
+  </div></div>`
 }
 function renderLists(){
- const ex=currentExpenses().slice().reverse();
- recentList.innerHTML=ex.length?ex.slice(0,4).map(itemExpense).join(''):'<div class="empty">Nenhum gasto lançado ainda.</div>';
- expenseList.innerHTML=ex.length?ex.map(itemExpense).join(''):'<div class="empty">Nenhum gasto neste mês.</div>';
- const pd=currentPending();pendingList.innerHTML=pd.length?pd.map(itemPending).join(''):'<div class="empty">Você não tem contas pendentes.</div>';
+ const ex=filteredExpenses().slice().reverse(),pd=filteredPending();
+ recentList.innerHTML=ex.length?ex.slice(0,4).map(itemExpense).join(''):'<div class="empty">Nenhum gasto nesta visão.</div>';
+ expenseList.innerHTML=ex.length?ex.map(itemExpense).join(''):'<div class="empty">Nenhum gasto nesta visão.</div>';
+ pendingList.innerHTML=pd.length?pd.map(itemPending).join(''):'<div class="empty">Nenhuma conta pendente nesta visão.</div>';
 }
-function itemExpense(x){return `<div class="item"><div class="left"><strong>${escapeHtml(x.name)}</strong><small>${escapeHtml(x.category||'Gasto')} • ${escapeHtml(x.author_name||'')}</small></div><div style="text-align:right"><div class="value expense">- ${money(x.value)}</div><div class="item-actions"><button class="mini" onclick="editExpense('${x.id}')">Editar</button><button class="mini delete" onclick="deleteExpense('${x.id}')">Excluir</button></div></div></div>`}
-function itemPending(x){return `<div class="item"><div class="left"><strong>${escapeHtml(x.name)}</strong><small>Conta pendente • ${escapeHtml(x.author_name||'')}</small></div><div style="text-align:right"><div class="value pending">${money(x.value)}</div><div class="item-actions"><button class="mini" onclick="editPending('${x.id}')">Editar</button><button class="mini delete" onclick="deletePending('${x.id}')">Excluir</button><button class="mini" onclick="payPending('${x.id}')">Marcar pago</button></div></div></div>`}
+
+function ownerButtons(selected){
+ const individualId=(selected&&selected!=='shared')?selected:session.user.id;
+ const individualLabel=memberName(individualId);
+ const actualSelected=selected==='shared'?'shared':individualId;
+ const opts=[{id:individualId,label:individualLabel},{id:'shared',label:'Nós dois'}];
+ return `<div class="field"><label>De quem é?</label><div class="owner-options" id="ownerOptions">${opts.map(o=>`<button type="button" class="owner-btn ${actualSelected===o.id?'selected':''}" data-owner="${o.id}" onclick="chooseOwner(this)">${escapeHtml(o.label)}</button>`).join('')}</div><input type="hidden" id="ownerValue" value="${actualSelected}"></div>`
+}
+function chooseOwner(btn){document.querySelectorAll('#ownerOptions .owner-btn').forEach(b=>b.classList.remove('selected'));btn.classList.add('selected');ownerValue.value=btn.dataset.owner}
 function showSection(id,btn){document.querySelectorAll('.section').forEach(x=>x.classList.remove('active'));document.getElementById(id).classList.add('active');document.querySelectorAll('.nav button').forEach(x=>x.classList.remove('active'));btn.classList.add('active')}
 function openModal(title,body){modalTitle.textContent=title;modalBody.innerHTML=body;modal.classList.add('show')}
 function closeModal(){modal.classList.remove('show')}
 modal.addEventListener('click',e=>{if(e.target===modal)closeModal()})
-function openSalary(){openModal('Definir salário do mês',`<div class="field"><label>Quanto você recebe por mês?</label><input id="fSalary" type="number" step="0.01" value="${data.salary||''}" placeholder="Ex.: 2000"></div><div class="sheet-actions"><button class="btn light" onclick="closeModal()">Cancelar</button><button class="btn primary" onclick="saveSalary()">Salvar</button></div>`)}
+
+function openSalary(){
+ const current=salaryFor(session.user.id);
+ openModal('Meu salário do mês',`<div class="field"><label>Quanto você recebe neste mês?</label><input id="fSalary" type="number" step="0.01" value="${current||''}" placeholder="Ex.: 2000"></div><div class="meta" style="margin-bottom:12px">Cada pessoa informa o próprio salário. O salário não é somado ao da outra pessoa na sua visão individual.</div><div class="sheet-actions"><button class="btn light" onclick="closeModal()">Cancelar</button><button class="btn primary" onclick="saveSalary()">Salvar</button></div>`)
+}
 async function saveSalary(){
  const v=Number(fSalary.value||0);
- const {error}=await sb.from('household_settings').upsert({household_id:household.id,month:monthKey(),salary:v},{onConflict:'household_id,month'});
- if(error)return alert(error.message);closeModal();await loadCloud();
+ const {error}=await sb.from('member_settings').upsert({household_id:household.id,user_id:session.user.id,month:monthKey(),salary:v},{onConflict:'household_id,user_id,month'});
+ if(error)return alert(error.message);closeModal();await loadCloud()
 }
-function openExpense(){openModal('Adicionar gasto',`<div class="field"><label>O que você comprou/pagou?</label><input id="fName" placeholder="Ex.: Mercado"></div><div class="row"><div class="field"><label>Valor</label><input id="fValue" type="number" step="0.01" placeholder="0,00"></div><div class="field"><label>Categoria</label><select id="fCat"><option>Alimentação</option><option>Transporte</option><option>Casa</option><option>Lazer</option><option>Saúde</option><option>Outros</option></select></div></div><div class="sheet-actions"><button class="btn light" onclick="closeModal()">Cancelar</button><button class="btn primary" onclick="saveExpense()">Adicionar</button></div>`)}
+function openExpense(){
+ const selected=session.user.id;
+ openModal('Adicionar gasto',`<div class="field"><label>O que foi gasto?</label><input id="fName" placeholder="Ex.: Mercado"></div><div class="row"><div class="field"><label>Valor total</label><input id="fValue" type="number" step="0.01" placeholder="0,00"></div><div class="field"><label>Categoria</label><select id="fCat"><option>Alimentação</option><option>Transporte</option><option>Casa</option><option>Lazer</option><option>Saúde</option><option>Compras</option><option>Outros</option></select></div></div>${ownerButtons(selected)}<div class="meta" style="margin-bottom:12px">Se escolher <b>Nós dois</b>, metade do valor será considerada para cada pessoa.</div><div class="sheet-actions"><button class="btn light" onclick="closeModal()">Cancelar</button><button class="btn primary" onclick="saveExpense()">Adicionar</button></div>`)
+}
 async function saveExpense(){
- const n=fName.value.trim(),v=Number(fValue.value||0),c=fCat.value;if(!n||v<=0)return alert('Informe o nome e o valor.');
- const {error}=await sb.from('expenses').insert({household_id:household.id,name:n,value:v,category:c,month:monthKey(),author_id:session.user.id,author_name:profileName()});
- if(error)return alert(error.message);closeModal();await loadCloud();
+ const n=fName.value.trim(),v=Number(fValue.value||0),owner=ownerValue.value;
+ if(!n||v<=0)return alert('Informe o nome e o valor.');
+ const payload={household_id:household.id,name:n,value:v,category:fCat.value,month:monthKey(),author_id:session.user.id,author_name:myName(),owner_scope:owner==='shared'?'shared':'member',owner_user_id:owner==='shared'?null:owner};
+ const {error}=await sb.from('expenses').insert(payload);if(error)return alert(error.message);closeModal();await loadCloud()
 }
-function openPending(){openModal('Adicionar conta a pagar',`<div class="field"><label>O que você precisa pagar?</label><input id="pName" placeholder="Ex.: Tênis, internet, cartão"></div><div class="field"><label>Valor</label><input id="pValue" type="number" step="0.01" placeholder="0,00"></div><div class="muted" style="margin-bottom:12px">Sem prazo. Ela fica aqui até ser marcada como paga.</div><div class="sheet-actions"><button class="btn light" onclick="closeModal()">Cancelar</button><button class="btn primary" onclick="savePending()">Adicionar</button></div>`)}
+function openPending(){
+ const selected=session.user.id;
+ openModal('Adicionar conta a pagar',`<div class="field"><label>O que precisa pagar?</label><input id="pName" placeholder="Ex.: Internet, tênis"></div><div class="field"><label>Valor total</label><input id="pValue" type="number" step="0.01" placeholder="0,00"></div>${ownerButtons(selected)}<div class="meta" style="margin-bottom:12px">Sem prazo obrigatório. Fica pendente até alguém marcar como pago.</div><div class="sheet-actions"><button class="btn light" onclick="closeModal()">Cancelar</button><button class="btn primary" onclick="savePending()">Adicionar</button></div>`)
+}
 async function savePending(){
- const n=pName.value.trim(),v=Number(pValue.value||0);if(!n||v<=0)return alert('Informe o nome e o valor.');
- const {error}=await sb.from('pending_items').insert({household_id:household.id,name:n,value:v,paid:false,author_id:session.user.id,author_name:profileName()});
- if(error)return alert(error.message);closeModal();await loadCloud();
+ const n=pName.value.trim(),v=Number(pValue.value||0),owner=ownerValue.value;if(!n||v<=0)return alert('Informe o nome e o valor.');
+ const payload={household_id:household.id,name:n,value:v,paid:false,author_id:session.user.id,author_name:myName(),owner_scope:owner==='shared'?'shared':'member',owner_user_id:owner==='shared'?null:owner};
+ const {error}=await sb.from('pending_items').insert(payload);if(error)return alert(error.message);closeModal();await loadCloud()
 }
 async function payPending(id){
- const p=data.pending.find(x=>x.id===id);if(!p)return;
- const {error:e1}=await sb.from('expenses').insert({household_id:household.id,name:p.name,value:p.value,category:'Conta paga',month:monthKey(),author_id:session.user.id,author_name:profileName()});
+ const p=data.pending.find(x=>x.id===id);if(!p)return;if(!confirm('Marcar esta conta como paga?'))return;
+ const {error:e1}=await sb.from('expenses').insert({household_id:household.id,name:p.name,value:p.value,category:'Conta paga',month:monthKey(),author_id:p.author_id||session.user.id,author_name:p.author_name||myName(),owner_scope:p.owner_scope||'member',owner_user_id:p.owner_user_id});
  if(e1)return alert(e1.message);
- const {error:e2}=await sb.from('pending_items').update({paid:true}).eq('id',id);if(e2)return alert(e2.message);await loadCloud();
+ const {error:e2}=await sb.from('pending_items').update({paid:true}).eq('id',id);if(e2)return alert(e2.message);await loadCloud()
 }
-function editExpense(id){const x=data.expenses.find(e=>e.id===id);if(!x)return;openModal('Editar gasto',`<div class="field"><label>Descrição</label><input id="eName" value="${escapeHtml(x.name)}"></div><div class="row"><div class="field"><label>Valor</label><input id="eValue" type="number" step="0.01" value="${x.value}"></div><div class="field"><label>Categoria</label><select id="eCat">${['Alimentação','Transporte','Casa','Lazer','Saúde','Outros','Conta paga'].map(c=>`<option ${x.category===c?'selected':''}>${c}</option>`).join('')}</select></div></div><div class="sheet-actions"><button class="btn light" onclick="closeModal()">Cancelar</button><button class="btn primary" onclick="saveExpenseEdit('${id}')">Salvar</button></div>`)}
-async function saveExpenseEdit(id){const n=eName.value.trim(),v=Number(eValue.value||0);if(!n||v<=0)return alert('Informe o nome e o valor.');const {error}=await sb.from('expenses').update({name:n,value:v,category:eCat.value}).eq('id',id);if(error)return alert(error.message);closeModal();await loadCloud()}
-async function deleteExpense(id){if(!confirm('Deseja realmente excluir este gasto?'))return;const {error}=await sb.from('expenses').delete().eq('id',id);if(error)return alert(error.message);await loadCloud()}
-function editPending(id){const x=data.pending.find(e=>e.id===id);if(!x)return;openModal('Editar conta a pagar',`<div class="field"><label>Descrição</label><input id="epName" value="${escapeHtml(x.name)}"></div><div class="field"><label>Valor</label><input id="epValue" type="number" step="0.01" value="${x.value}"></div><div class="sheet-actions"><button class="btn light" onclick="closeModal()">Cancelar</button><button class="btn primary" onclick="savePendingEdit('${id}')">Salvar</button></div>`)}
-async function savePendingEdit(id){const n=epName.value.trim(),v=Number(epValue.value||0);if(!n||v<=0)return alert('Informe o nome e o valor.');const {error}=await sb.from('pending_items').update({name:n,value:v}).eq('id',id);if(error)return alert(error.message);closeModal();await loadCloud()}
-async function deletePending(id){if(!confirm('Deseja realmente excluir esta conta pendente?'))return;const {error}=await sb.from('pending_items').delete().eq('id',id);if(error)return alert(error.message);await loadCloud()}
+function editExpense(id){
+ const x=data.expenses.find(e=>e.id===id);if(!x)return;
+ const selected=isShared(x)?'shared':x.owner_user_id;
+ openModal('Editar gasto',`<div class="field"><label>Descrição</label><input id="eName" value="${escapeHtml(x.name)}"></div><div class="row"><div class="field"><label>Valor total</label><input id="eValue" type="number" step="0.01" value="${x.value}"></div><div class="field"><label>Categoria</label><select id="eCat">${['Alimentação','Transporte','Casa','Lazer','Saúde','Compras','Outros','Conta paga'].map(c=>`<option ${x.category===c?'selected':''}>${c}</option>`).join('')}</select></div></div>${ownerButtons(selected)}<div class="sheet-actions"><button class="btn light" onclick="closeModal()">Cancelar</button><button class="btn primary" onclick="saveExpenseEdit('${id}')">Salvar</button></div>`)
+}
+async function saveExpenseEdit(id){
+ const n=eName.value.trim(),v=Number(eValue.value||0),owner=ownerValue.value;if(!n||v<=0)return alert('Informe nome e valor.');
+ const {error}=await sb.from('expenses').update({name:n,value:v,category:eCat.value,owner_scope:owner==='shared'?'shared':'member',owner_user_id:owner==='shared'?null:owner}).eq('id',id);
+ if(error)return alert(error.message);closeModal();await loadCloud()
+}
+async function deleteExpense(id){if(!confirm('Excluir este gasto?'))return;const {error}=await sb.from('expenses').delete().eq('id',id);if(error)return alert(error.message);await loadCloud()}
+function editPending(id){
+ const x=data.pending.find(e=>e.id===id);if(!x)return;const selected=isShared(x)?'shared':x.owner_user_id;
+ openModal('Editar conta a pagar',`<div class="field"><label>Descrição</label><input id="epName" value="${escapeHtml(x.name)}"></div><div class="field"><label>Valor total</label><input id="epValue" type="number" step="0.01" value="${x.value}"></div>${ownerButtons(selected)}<div class="sheet-actions"><button class="btn light" onclick="closeModal()">Cancelar</button><button class="btn primary" onclick="savePendingEdit('${id}')">Salvar</button></div>`)
+}
+async function savePendingEdit(id){
+ const n=epName.value.trim(),v=Number(epValue.value||0),owner=ownerValue.value;if(!n||v<=0)return alert('Informe nome e valor.');
+ const {error}=await sb.from('pending_items').update({name:n,value:v,owner_scope:owner==='shared'?'shared':'member',owner_user_id:owner==='shared'?null:owner}).eq('id',id);
+ if(error)return alert(error.message);closeModal();await loadCloud()
+}
+async function deletePending(id){if(!confirm('Excluir esta conta pendente?'))return;const {error}=await sb.from('pending_items').delete().eq('id',id);if(error)return alert(error.message);await loadCloud()}
+
+function chartExpensesForMonth(month){
+ const ex=data.expenses.filter(x=>x.month===month);
+ if(viewMode==='shared')return ex.filter(isShared).map(x=>({...x,chart_value:Number(x.value)}));
+ return ex.filter(x=>isShared(x)||x.owner_user_id===viewMode).map(x=>({...x,chart_value:itemShare(x,viewMode)}))
+}
+function renderCharts(){
+ const ex=chartExpensesForMonth(monthKey()),total=ex.reduce((s,x)=>s+x.chart_value,0);
+ const grouped={};ex.forEach(x=>{const c=x.category||'Outros';grouped[c]=(grouped[c]||0)+x.chart_value});
+ const rows=Object.entries(grouped).sort((a,b)=>b[1]-a[1]);
+ if(!total){
+  donut.style.background='#e8edf5';donutCenter.innerHTML='Sem<br>gastos';categoryLegend.innerHTML='<div class="empty">Sem dados neste mês.</div>';
+ }else{
+  let acc=0,parts=[];rows.forEach(([c,v],i)=>{const start=acc/total*360;acc+=v;const end=acc/total*360;parts.push(`${COLORS[i%COLORS.length]} ${start}deg ${end}deg`)});
+  donut.style.background=`conic-gradient(${parts.join(',')})`;donutCenter.innerHTML=`${Math.round(total?100:0)}%<br>${money(total)}`;
+  categoryLegend.innerHTML=rows.map(([c,v],i)=>`<div class="legend-row"><span class="dot" style="background:${COLORS[i%COLORS.length]}"></span><span>${escapeHtml(c)}</span><strong>${money(v)}</strong></div>`).join('');
+ }
+ const months=sixMonths(),vals=months.map(m=>chartExpensesForMonth(m).reduce((s,x)=>s+x.chart_value,0)),max=Math.max(...vals,1);
+ monthBars.innerHTML=months.map((m,i)=>`<div class="bar-col"><div class="bar-value">${vals[i]?money(vals[i]).replace('R$ ','R$'):''}</div><div class="bar" style="height:${Math.max(2,vals[i]/max*135)}px"></div><div class="bar-label">${monthLabel(m)}</div></div>`).join('');
+ if(viewMode==='shared')graphTip.textContent=`Os gráficos mostram apenas gastos marcados como “Nós dois”. O valor compartilhado é dividido igualmente entre ${splitCount()} pessoa${splitCount()===1?'':'s'} nas visões individuais.`;
+ else graphTip.textContent=`Na visão de ${viewName()}, os gráficos contam 100% dos gastos individuais e somente a parte correspondente dos gastos de “Nós dois”.`;
+}
 
 (async()=>{
  const {data:r}=await sb.auth.getSession();session=r.session;
  if(session)await afterLogin();
 })();
-if('serviceWorker' in navigator)navigator.serviceWorker.register('./sw.js').catch(()=>{});
+if('serviceWorker'in navigator)navigator.serviceWorker.register('./sw.js').catch(()=>{});
 </script>
-
 </body>
 </html>

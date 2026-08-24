@@ -1,9 +1,32 @@
-MEU DINHEIRO COMPARTILHADO v6
+MEU DINHEIRO COMPARTILHADO v7
 
-1) Antes de publicar, rode ATUALIZAR_BANCO_v6.sql no Editor SQL do Supabase.
-2) Depois substitua os arquivos do repositório GitHub Pages pelos arquivos desta pasta.
-3) Abra o app e crie sua conta.
-4) Crie 'Nosso Dinheiro' e copie o código de convite.
-5) A outra pessoa cria a própria conta e entra com esse código.
+PRINCIPAIS MUDANÇAS
+- Cada pessoa possui sua própria visão financeira.
+- Cada pessoa cadastra o próprio salário.
+- Ao criar gasto/conta, escolha de quem é usando os nomes reais das contas.
+- Opção "Nós dois": o valor total é dividido igualmente entre os membros (com 2 pessoas, 50% para cada).
+- Abas separadas pelos nomes dos membros + "Nós dois".
+- Cada lançamento mostra:
+  • de quem é;
+  • quem adicionou;
+  • valor total e, quando compartilhado, a parte de cada um.
+- Editar, excluir e marcar como pago continuam disponíveis.
+- Gráfico por categoria.
+- Gráfico dos últimos 6 meses.
+- Sincronização em tempo real + atualização automática de segurança.
 
-Recursos: salário mensal, gastos, contas a pagar sem prazo, marcar como pago, editar/excluir, saldo restante e valor livre após contas, identificação de quem lançou, sincronização.
+COMO ATUALIZAR
+1. No Supabase > Editor SQL, cole TODO o conteúdo de MIGRACAO_v7.sql e clique em Run/Correr.
+2. Depois envie para o GitHub os arquivos:
+   index.html
+   manifest.webmanifest
+   sw.js
+   icon-192.png
+   icon-512.png
+   apple-touch-icon.png
+3. Faça Commit changes e espere o GitHub Actions ficar verde.
+4. Abra o app novamente.
+5. Se o iPhone ainda mostrar a versão antiga, abra o endereço no Safari e atualize a página; depois feche e reabra o app da Tela de Início.
+
+OBSERVAÇÃO
+A migração preserva os lançamentos existentes. Os lançamentos antigos são atribuídos à pessoa que os adicionou.
