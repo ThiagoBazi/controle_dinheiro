@@ -189,7 +189,7 @@ button{cursor:pointer}
   <div class="tip" id="graphTip" style="margin-top:14px"></div>
  </section>
 
- <div class="version">Meu Dinheiro v8</div>
+ <div class="version">Meu Dinheiro v9</div>
 </div>
 
 <div class="nav"><div class="nav-inner">
@@ -359,16 +359,18 @@ function renderAll(){renderTabs();renderSummary();renderLists();renderCharts()}
 function renderSummary(){
  const t=totals(),name=viewName();
  if(viewMode==='shared'){
-   heroKicker.textContent='Gastos marcados como "Nós dois" neste mês';
-   remaining.textContent=money(t.spent);
-   salaryLabel.textContent='Total compartilhado';salary.textContent=money(t.spent);
-   spentLabel.textContent='Parte por pessoa';spent.textContent=money(t.spent/splitCount());
-   pendingLabel.textContent='Compartilhado a pagar';pending.textContent=money(t.pending);
-   summaryTitle.textContent='Resumo compartilhado';
-   sumSalaryLabel.textContent='Gastos compartilhados';sSalary.textContent=money(t.spent);
-   sumSpentLabel.textContent='Sua metade';sSpent.textContent=money(t.spent/splitCount());
-   sumFreeLabel.textContent='Pendências compartilhadas';sFree.textContent=money(t.pending);
-   progressBar.style.width='0%';progressText.textContent=`Os valores compartilhados são divididos igualmente entre ${splitCount()} pessoa${splitCount()===1?'':'s'}.`;
+   heroKicker.textContent='Quanto vocês ainda podem gastar neste mês';
+   remaining.textContent=money(t.remaining);
+   salaryLabel.textContent='Salários somados';salary.textContent=money(t.salary);
+   spentLabel.textContent='Gastos dos dois';spent.textContent=money(t.spent);
+   pendingLabel.textContent='Total a pagar';pending.textContent=money(t.pending);
+   summaryTitle.textContent='Resumo de Nós dois';
+   sumSalaryLabel.textContent='Salários dos dois';sSalary.textContent=money(t.salary);
+   sumSpentLabel.textContent='Total gasto';sSpent.textContent=money(t.spent);
+   sumFreeLabel.textContent='Sobra após pendências';sFree.textContent=money(t.free);
+   const pct=t.salary>0?Math.min(100,Math.round(t.spent/t.salary*100)):0;
+   progressBar.style.width=pct+'%';
+   progressText.textContent=t.salary>0?`${pct}% da renda total dos dois utilizada`:'Os salários ainda não foram informados';
  }else{
    heroKicker.textContent=`Quanto ${name} ainda pode gastar neste mês`;
    remaining.textContent=money(t.remaining);
@@ -453,22 +455,20 @@ async function saveSalary(){
  if(error)return alert(error.message);closeModal();await loadCloud()
 }
 function openExpense(){
- const selected=session.user.id;
- openModal('Adicionar gasto',`<div class="field"><label>O que foi gasto?</label><input id="fName" placeholder="Ex.: Mercado"></div><div class="row"><div class="field"><label>Valor total</label><input id="fValue" type="number" step="0.01" placeholder="0,00"></div><div class="field"><label>Categoria</label><select id="fCat"><option>Alimentação</option><option>Transporte</option><option>Casa</option><option>Lazer</option><option>Saúde</option><option>Compras</option><option>Outros</option></select></div></div>${ownerButtons(selected)}<div class="meta" style="margin-bottom:12px">Se escolher <b>Nós dois</b>, metade do valor será considerada para cada pessoa.</div><div class="sheet-actions"><button class="btn light" onclick="closeModal()">Cancelar</button><button class="btn primary" onclick="saveExpense()">Adicionar</button></div>`)
+ openModal('Adicionar gasto',`<div class="field"><label>O que foi gasto?</label><input id="fName" placeholder="Ex.: Mercado"></div><div class="row"><div class="field"><label>Valor</label><input id="fValue" type="number" step="0.01" placeholder="0,00"></div><div class="field"><label>Categoria</label><select id="fCat"><option>Alimentação</option><option>Transporte</option><option>Casa</option><option>Lazer</option><option>Saúde</option><option>Compras</option><option>Outros</option></select></div></div><div class="meta" style="margin-bottom:12px">O gasto ficará automaticamente na sua conta e também entrará no total de <b>Nós dois</b>.</div><div class="sheet-actions"><button class="btn light" onclick="closeModal()">Cancelar</button><button class="btn primary" onclick="saveExpense()">Adicionar</button></div>`)
 }
 async function saveExpense(){
- const n=fName.value.trim(),v=Number(fValue.value||0),owner=ownerValue.value;
+ const n=fName.value.trim(),v=Number(fValue.value||0);
  if(!n||v<=0)return alert('Informe o nome e o valor.');
- const payload={household_id:household.id,name:n,value:v,category:fCat.value,month:monthKey(),author_id:session.user.id,author_name:myName(),owner_scope:owner==='shared'?'shared':'member',owner_user_id:owner==='shared'?null:owner};
+ const payload={household_id:household.id,name:n,value:v,category:fCat.value,month:monthKey(),author_id:session.user.id,author_name:myName(),owner_scope:'member',owner_user_id:session.user.id};
  const {error}=await sb.from('expenses').insert(payload);if(error)return alert(error.message);closeModal();await loadCloud()
 }
 function openPending(){
- const selected=session.user.id;
- openModal('Adicionar conta a pagar',`<div class="field"><label>O que precisa pagar?</label><input id="pName" placeholder="Ex.: Internet, tênis"></div><div class="field"><label>Valor total</label><input id="pValue" type="number" step="0.01" placeholder="0,00"></div>${ownerButtons(selected)}<div class="meta" style="margin-bottom:12px">Sem prazo obrigatório. Fica pendente até alguém marcar como pago.</div><div class="sheet-actions"><button class="btn light" onclick="closeModal()">Cancelar</button><button class="btn primary" onclick="savePending()">Adicionar</button></div>`)
+ openModal('Adicionar conta a pagar',`<div class="field"><label>O que precisa pagar?</label><input id="pName" placeholder="Ex.: Internet, tênis"></div><div class="field"><label>Valor</label><input id="pValue" type="number" step="0.01" placeholder="0,00"></div><div class="meta" style="margin-bottom:12px">A conta ficará automaticamente na sua conta e também entrará no total de <b>Nós dois</b>.</div><div class="sheet-actions"><button class="btn light" onclick="closeModal()">Cancelar</button><button class="btn primary" onclick="savePending()">Adicionar</button></div>`)
 }
 async function savePending(){
- const n=pName.value.trim(),v=Number(pValue.value||0),owner=ownerValue.value;if(!n||v<=0)return alert('Informe o nome e o valor.');
- const payload={household_id:household.id,name:n,value:v,paid:false,author_id:session.user.id,author_name:myName(),owner_scope:owner==='shared'?'shared':'member',owner_user_id:owner==='shared'?null:owner};
+ const n=pName.value.trim(),v=Number(pValue.value||0);if(!n||v<=0)return alert('Informe o nome e o valor.');
+ const payload={household_id:household.id,name:n,value:v,paid:false,author_id:session.user.id,author_name:myName(),owner_scope:'member',owner_user_id:session.user.id};
  const {error}=await sb.from('pending_items').insert(payload);if(error)return alert(error.message);closeModal();await loadCloud()
 }
 async function payPending(id){
@@ -479,22 +479,21 @@ async function payPending(id){
 }
 function editExpense(id){
  const x=data.expenses.find(e=>e.id===id);if(!x)return;
- const selected=isShared(x)?'shared':x.owner_user_id;
- openModal('Editar gasto',`<div class="field"><label>Descrição</label><input id="eName" value="${escapeHtml(x.name)}"></div><div class="row"><div class="field"><label>Valor total</label><input id="eValue" type="number" step="0.01" value="${x.value}"></div><div class="field"><label>Categoria</label><select id="eCat">${['Alimentação','Transporte','Casa','Lazer','Saúde','Compras','Outros','Conta paga'].map(c=>`<option ${x.category===c?'selected':''}>${c}</option>`).join('')}</select></div></div>${ownerButtons(selected)}<div class="sheet-actions"><button class="btn light" onclick="closeModal()">Cancelar</button><button class="btn primary" onclick="saveExpenseEdit('${id}')">Salvar</button></div>`)
+ openModal('Editar gasto',`<div class="field"><label>Descrição</label><input id="eName" value="${escapeHtml(x.name)}"></div><div class="row"><div class="field"><label>Valor</label><input id="eValue" type="number" step="0.01" value="${x.value}"></div><div class="field"><label>Categoria</label><select id="eCat">${['Alimentação','Transporte','Casa','Lazer','Saúde','Compras','Outros','Conta paga'].map(c=>`<option ${x.category===c?'selected':''}>${c}</option>`).join('')}</select></div></div><div class="sheet-actions"><button class="btn light" onclick="closeModal()">Cancelar</button><button class="btn primary" onclick="saveExpenseEdit('${id}')">Salvar</button></div>`)
 }
 async function saveExpenseEdit(id){
- const n=eName.value.trim(),v=Number(eValue.value||0),owner=ownerValue.value;if(!n||v<=0)return alert('Informe nome e valor.');
- const {error}=await sb.from('expenses').update({name:n,value:v,category:eCat.value,owner_scope:owner==='shared'?'shared':'member',owner_user_id:owner==='shared'?null:owner}).eq('id',id);
+ const n=eName.value.trim(),v=Number(eValue.value||0);if(!n||v<=0)return alert('Informe nome e valor.');
+ const {error}=await sb.from('expenses').update({name:n,value:v,category:eCat.value}).eq('id',id);
  if(error)return alert(error.message);closeModal();await loadCloud()
 }
 async function deleteExpense(id){if(!confirm('Excluir este gasto?'))return;const {error}=await sb.from('expenses').delete().eq('id',id);if(error)return alert(error.message);await loadCloud()}
 function editPending(id){
- const x=data.pending.find(e=>e.id===id);if(!x)return;const selected=isShared(x)?'shared':x.owner_user_id;
- openModal('Editar conta a pagar',`<div class="field"><label>Descrição</label><input id="epName" value="${escapeHtml(x.name)}"></div><div class="field"><label>Valor total</label><input id="epValue" type="number" step="0.01" value="${x.value}"></div>${ownerButtons(selected)}<div class="sheet-actions"><button class="btn light" onclick="closeModal()">Cancelar</button><button class="btn primary" onclick="savePendingEdit('${id}')">Salvar</button></div>`)
+ const x=data.pending.find(e=>e.id===id);if(!x)return;
+ openModal('Editar conta a pagar',`<div class="field"><label>Descrição</label><input id="epName" value="${escapeHtml(x.name)}"></div><div class="field"><label>Valor</label><input id="epValue" type="number" step="0.01" value="${x.value}"></div><div class="sheet-actions"><button class="btn light" onclick="closeModal()">Cancelar</button><button class="btn primary" onclick="savePendingEdit('${id}')">Salvar</button></div>`)
 }
 async function savePendingEdit(id){
- const n=epName.value.trim(),v=Number(epValue.value||0),owner=ownerValue.value;if(!n||v<=0)return alert('Informe nome e valor.');
- const {error}=await sb.from('pending_items').update({name:n,value:v,owner_scope:owner==='shared'?'shared':'member',owner_user_id:owner==='shared'?null:owner}).eq('id',id);
+ const n=epName.value.trim(),v=Number(epValue.value||0);if(!n||v<=0)return alert('Informe nome e valor.');
+ const {error}=await sb.from('pending_items').update({name:n,value:v}).eq('id',id);
  if(error)return alert(error.message);closeModal();await loadCloud()
 }
 async function deletePending(id){if(!confirm('Excluir esta conta pendente?'))return;const {error}=await sb.from('pending_items').delete().eq('id',id);if(error)return alert(error.message);await loadCloud()}
@@ -517,7 +516,7 @@ function renderCharts(){
  }
  const months=sixMonths(),vals=months.map(m=>chartExpensesForMonth(m).reduce((s,x)=>s+x.chart_value,0)),max=Math.max(...vals,1);
  monthBars.innerHTML=months.map((m,i)=>`<div class="bar-col"><div class="bar-value">${vals[i]?money(vals[i]).replace('R$ ','R$'):''}</div><div class="bar" style="height:${Math.max(2,vals[i]/max*135)}px"></div><div class="bar-label">${monthLabel(m)}</div></div>`).join('');
- if(viewMode==='shared')graphTip.textContent='Os gráficos de Nós dois somam todos os gastos individuais e compartilhados, sem duplicar os lançamentos compartilhados.';
+ if(viewMode==='shared')graphTip.textContent='Os gráficos de Nós dois somam todos os gastos das duas contas.';
  else graphTip.textContent=`Na visão de ${viewName()}, os gráficos contam 100% dos gastos individuais e somente a parte correspondente dos gastos de “Nós dois”.`;
 }
 

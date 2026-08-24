@@ -1,32 +1,19 @@
-MEU DINHEIRO COMPARTILHADO v7
+MEU DINHEIRO V9
 
-PRINCIPAIS MUDANÇAS
-- Cada pessoa possui sua própria visão financeira.
-- Cada pessoa cadastra o próprio salário.
-- Ao criar gasto/conta, escolha de quem é usando os nomes reais das contas.
-- Opção "Nós dois": o valor total é dividido igualmente entre os membros (com 2 pessoas, 50% para cada).
-- Abas separadas pelos nomes dos membros + "Nós dois".
-- Cada lançamento mostra:
-  • de quem é;
-  • quem adicionou;
-  • valor total e, quando compartilhado, a parte de cada um.
-- Editar, excluir e marcar como pago continuam disponíveis.
-- Gráfico por categoria.
-- Gráfico dos últimos 6 meses.
-- Sincronização em tempo real + atualização automática de segurança.
+ARQUIVOS PARA O GITHUB:
+- index.html
+- manifest.webmanifest
+- sw.js
+- icon-192.png
+- icon-512.png
+- apple-touch-icon.png
 
-COMO ATUALIZAR
-1. No Supabase > Editor SQL, cole TODO o conteúdo de MIGRACAO_v7.sql e clique em Run/Correr.
-2. Depois envie para o GitHub os arquivos:
-   index.html
-   manifest.webmanifest
-   sw.js
-   icon-192.png
-   icon-512.png
-   apple-touch-icon.png
-3. Faça Commit changes e espere o GitHub Actions ficar verde.
-4. Abra o app novamente.
-5. Se o iPhone ainda mostrar a versão antiga, abra o endereço no Safari e atualize a página; depois feche e reabra o app da Tela de Início.
+BANCO:
+- Execute ATUALIZAR_BANCO.sql uma vez no Supabase SQL Editor.
 
-OBSERVAÇÃO
-A migração preserva os lançamentos existentes. Os lançamentos antigos são atribuídos à pessoa que os adicionou.
+LÓGICA:
+- Cada pessoa informa seu próprio salário.
+- Cada gasto/conta pertence automaticamente à pessoa logada.
+- Não existe mais "Nós dois" ao cadastrar.
+- A aba "Nós dois" soma salários, gastos e contas a pagar das duas pessoas.
+- O código de convite aparece na tela.
