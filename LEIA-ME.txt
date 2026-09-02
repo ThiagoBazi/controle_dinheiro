@@ -1,19 +1,13 @@
-MEU DINHEIRO V9
+MEU DINHEIRO v10
 
-ARQUIVOS PARA O GITHUB:
-- index.html
-- manifest.webmanifest
-- sw.js
-- icon-192.png
-- icon-512.png
-- apple-touch-icon.png
+NOVIDADE:
+Na aba Gráficos agora existe seleção de mês.
+Ao escolher/tocar em um mês:
+- mostra o total gasto naquele mês;
+- gráfico por categoria muda para o mês selecionado;
+- mostra uma lista completa de tudo que consumiu dinheiro no mês;
+- contas que foram marcadas como pagas aparecem como gasto;
+- respeita a visão individual ou "Nós dois".
 
-BANCO:
-- Execute ATUALIZAR_BANCO.sql uma vez no Supabase SQL Editor.
-
-LÓGICA:
-- Cada pessoa informa seu próprio salário.
-- Cada gasto/conta pertence automaticamente à pessoa logada.
-- Não existe mais "Nós dois" ao cadastrar.
-- A aba "Nós dois" soma salários, gastos e contas a pagar das duas pessoas.
-- O código de convite aparece na tela.
+NÃO PRECISA ALTERAR O BANCO DE DADOS.
+Substitua os arquivos do GitHub pelos arquivos desta pasta.

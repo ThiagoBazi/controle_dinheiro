@@ -81,6 +81,19 @@ button{cursor:pointer}
 .legend{display:flex;flex-direction:column;gap:7px}.legend-row{display:grid;grid-template-columns:10px 1fr auto;gap:7px;align-items:center;font-size:11px}.dot{width:9px;height:9px;border-radius:50%}
 .bars{display:flex;align-items:flex-end;gap:8px;height:190px;padding:14px 4px 0}.bar-col{flex:1;height:100%;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;gap:5px;min-width:0}.bar{width:min(40px,75%);background:linear-gradient(var(--primary),var(--primary2));border-radius:8px 8px 3px 3px;min-height:2px}.bar-value{font-size:9px;color:var(--muted);white-space:nowrap}.bar-label{font-size:10px;color:var(--muted)}
 .tip{background:#f8fafc;border:1px solid var(--line);border-radius:14px;padding:12px;font-size:12px;color:#4b5563;line-height:1.45}
+.month-toolbar{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:13px}
+.month-toolbar select{min-height:42px;border:1px solid var(--line);border-radius:12px;background:#fff;padding:0 11px;color:var(--text);font-weight:750}
+.month-total{font-size:13px;color:var(--muted)}
+.month-total strong{color:var(--text);font-size:17px;margin-left:4px}
+.month-detail-list{display:flex;flex-direction:column;gap:8px}
+.month-detail-item{display:flex;justify-content:space-between;gap:12px;align-items:flex-start;padding:11px 0;border-bottom:1px solid var(--line)}
+.month-detail-item:last-child{border-bottom:0}
+.month-detail-item .desc{min-width:0}
+.month-detail-item .desc strong{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.month-detail-item .desc small{display:block;color:var(--muted);font-size:11px;margin-top:3px}
+.month-detail-item .val{font-weight:850;color:var(--bad);white-space:nowrap}
+.bar-col{cursor:pointer;border-radius:9px;padding-top:4px}
+.bar-col.selected{background:#f1f5f9}
 .version{font-size:10px;color:#9ca3af;text-align:center;margin-top:14px}
 @media(max-width:760px){
  .app{padding:13px 11px 88px}.hero-grid{grid-template-columns:1fr 1fr}.hero-metric:last-child{grid-column:1/-1}
@@ -173,6 +186,13 @@ button{cursor:pointer}
  </section>
 
  <section id="graficos" class="section">
+  <div class="month-toolbar">
+    <div>
+      <div class="muted" style="font-size:12px">Mês selecionado</div>
+      <select id="chartMonthSelect" onchange="changeChartMonth(this.value)"></select>
+    </div>
+    <div class="month-total">Total consumido no mês:<strong id="selectedMonthTotal">R$ 0,00</strong></div>
+  </div>
   <div class="graph-grid">
    <div class="card">
     <h2>Gastos por categoria</h2>
@@ -186,10 +206,14 @@ button{cursor:pointer}
     <div class="bars" id="monthBars"></div>
    </div>
   </div>
+  <div class="card" style="margin-top:14px">
+    <h2 id="monthDetailTitle">Tudo que consumiu seu dinheiro no mês</h2>
+    <div class="month-detail-list" id="monthDetailList"></div>
+  </div>
   <div class="tip" id="graphTip" style="margin-top:14px"></div>
  </section>
 
- <div class="version">Meu Dinheiro v9</div>
+ <div class="version">Meu Dinheiro v10</div>
 </div>
 
 <div class="nav"><div class="nav-inner">
@@ -212,6 +236,7 @@ const LEGACY_PROFILE_KEY='meu_dinheiro_profile_name';
 let session=null,household=null,members=[],me=null,viewMode=null;
 let data={settings:[],expenses:[],pending:[]};
 let realtimeChannel=null,refreshTimer=null;
+let selectedChartMonth=monthKey();
 
 const COLORS=['#1769e0','#16a34a','#e58b13','#9b51e0','#e14848','#0891b2','#64748b'];
 
@@ -224,6 +249,8 @@ function sixMonths(){
  return arr
 }
 function monthLabel(m){const [y,mo]=m.split('-');return new Date(Number(y),Number(mo)-1,1).toLocaleDateString('pt-BR',{month:'short'}).replace('.','')}
+function monthLongLabel(m){const [y,mo]=m.split('-');const t=new Date(Number(y),Number(mo)-1,1).toLocaleDateString('pt-BR',{month:'long',year:'numeric'});return t.charAt(0).toUpperCase()+t.slice(1)}
+function changeChartMonth(m){selectedChartMonth=m;renderCharts()}
 function memberName(uid){return members.find(m=>m.user_id===uid)?.display_name||'Usuário'}
 function myName(){return me?.display_name||localStorage.getItem(PROFILE_KEY)||localStorage.getItem(LEGACY_PROFILE_KEY)||session?.user?.user_metadata?.name||session?.user?.email?.split('@')[0]||'Eu'}
 function splitCount(){return Math.max(1,members.length)}
@@ -504,20 +531,37 @@ function chartExpensesForMonth(month){
  return ex.filter(x=>isShared(x)||x.owner_user_id===viewMode).map(x=>({...x,chart_value:itemShare(x,viewMode)}))
 }
 function renderCharts(){
- const ex=chartExpensesForMonth(monthKey()),total=ex.reduce((s,x)=>s+x.chart_value,0);
+ const months=sixMonths();
+ if(!months.includes(selectedChartMonth))selectedChartMonth=monthKey();
+
+ chartMonthSelect.innerHTML=months.slice().reverse().map(m=>`<option value="${m}" ${m===selectedChartMonth?'selected':''}>${monthLongLabel(m)}</option>`).join('');
+
+ const ex=chartExpensesForMonth(selectedChartMonth),total=ex.reduce((s,x)=>s+x.chart_value,0);
+ selectedMonthTotal.textContent=money(total);
+ monthDetailTitle.textContent=`Tudo que consumiu ${viewMode==='shared'?'o dinheiro de vocês':`o dinheiro de ${viewName()}`} • ${monthLongLabel(selectedChartMonth)}`;
+
  const grouped={};ex.forEach(x=>{const c=x.category||'Outros';grouped[c]=(grouped[c]||0)+x.chart_value});
  const rows=Object.entries(grouped).sort((a,b)=>b[1]-a[1]);
  if(!total){
-  donut.style.background='#e8edf5';donutCenter.innerHTML='Sem<br>gastos';categoryLegend.innerHTML='<div class="empty">Sem dados neste mês.</div>';
+  donut.style.background='#e8edf5';donutCenter.innerHTML='Sem<br>gastos';categoryLegend.innerHTML='<div class="empty">Sem gastos neste mês.</div>';
  }else{
   let acc=0,parts=[];rows.forEach(([c,v],i)=>{const start=acc/total*360;acc+=v;const end=acc/total*360;parts.push(`${COLORS[i%COLORS.length]} ${start}deg ${end}deg`)});
-  donut.style.background=`conic-gradient(${parts.join(',')})`;donutCenter.innerHTML=`${Math.round(total?100:0)}%<br>${money(total)}`;
+  donut.style.background=`conic-gradient(${parts.join(',')})`;donutCenter.innerHTML=`${money(total)}`;
   categoryLegend.innerHTML=rows.map(([c,v],i)=>`<div class="legend-row"><span class="dot" style="background:${COLORS[i%COLORS.length]}"></span><span>${escapeHtml(c)}</span><strong>${money(v)}</strong></div>`).join('');
  }
- const months=sixMonths(),vals=months.map(m=>chartExpensesForMonth(m).reduce((s,x)=>s+x.chart_value,0)),max=Math.max(...vals,1);
- monthBars.innerHTML=months.map((m,i)=>`<div class="bar-col"><div class="bar-value">${vals[i]?money(vals[i]).replace('R$ ','R$'):''}</div><div class="bar" style="height:${Math.max(2,vals[i]/max*135)}px"></div><div class="bar-label">${monthLabel(m)}</div></div>`).join('');
- if(viewMode==='shared')graphTip.textContent='Os gráficos de Nós dois somam todos os gastos das duas contas.';
- else graphTip.textContent=`Na visão de ${viewName()}, os gráficos contam 100% dos gastos individuais e somente a parte correspondente dos gastos de “Nós dois”.`;
+
+ const vals=months.map(m=>chartExpensesForMonth(m).reduce((s,x)=>s+x.chart_value,0)),max=Math.max(...vals,1);
+ monthBars.innerHTML=months.map((m,i)=>`<div class="bar-col ${m===selectedChartMonth?'selected':''}" onclick="changeChartMonth('${m}')" title="Ver ${monthLongLabel(m)}"><div class="bar-value">${vals[i]?money(vals[i]).replace('R$ ','R$'):''}</div><div class="bar" style="height:${Math.max(2,vals[i]/max*135)}px"></div><div class="bar-label">${monthLabel(m)}</div></div>`).join('');
+
+ const detail=ex.slice().sort((a,b)=>new Date(b.created_at)-new Date(a.created_at));
+ monthDetailList.innerHTML=detail.length?detail.map(x=>{
+   const owner=viewMode==='shared'?(isShared(x)?'Nós dois':memberName(x.owner_user_id)):'';
+   const meta=[x.category||'Gasto',owner,x.author_name?`Adicionado por ${x.author_name}`:''].filter(Boolean).join(' • ');
+   return `<div class="month-detail-item"><div class="desc"><strong>${escapeHtml(x.name)}</strong><small>${escapeHtml(meta)}</small></div><div class="val">- ${money(x.chart_value)}</div></div>`;
+ }).join(''):'<div class="empty">Nenhum gasto registrado neste mês.</div>';
+
+ if(viewMode==='shared')graphTip.textContent='Na visão Nós dois, o mês mostra todos os gastos das duas contas somados.';
+ else graphTip.textContent=`Na visão de ${viewName()}, o mês mostra tudo que efetivamente consumiu o dinheiro dessa conta. Contas marcadas como pagas também entram como gasto.`;
 }
 
 (async()=>{
