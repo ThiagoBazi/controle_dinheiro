@@ -1,0 +1,14 @@
+MEU DINHEIRO v11 — ADICIONAR DINHEIRO
+
+NOVO:
+- Botão “+ Adicionar dinheiro”.
+- Você informa a origem (ex.: venda, extra, presente) e o valor.
+- O valor entra no mês atual e é somado ao salário.
+- “Ainda pode gastar” passa a considerar salário + dinheiro extra.
+- Na visão “Nós dois”, soma as entradas extras das duas pessoas.
+
+IMPORTANTE:
+Antes de usar a nova versão, rode UMA VEZ no Supabase o arquivo:
+ATUALIZAR_BANCO_v11_ENTRADAS.sql
+
+Depois substitua os arquivos do GitHub pelos desta pasta.

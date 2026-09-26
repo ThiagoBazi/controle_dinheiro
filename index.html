@@ -156,6 +156,7 @@ button{cursor:pointer}
 
   <div class="quick">
    <button class="btn primary" onclick="openExpense()">+ Adicionar gasto</button>
+   <button class="btn light" onclick="openIncome()">+ Adicionar dinheiro</button>
    <button class="btn light" onclick="openPending()">+ Conta a pagar</button>
   </div>
 
@@ -234,7 +235,7 @@ const sb=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
 const PROFILE_KEY='meu_dinheiro_profile_name_v7';
 const LEGACY_PROFILE_KEY='meu_dinheiro_profile_name';
 let session=null,household=null,members=[],me=null,viewMode=null;
-let data={settings:[],expenses:[],pending:[]};
+let data={settings:[],expenses:[],pending:[],incomes:[]};
 let realtimeChannel=null,refreshTimer=null;
 let selectedChartMonth=monthKey();
 
@@ -280,12 +281,17 @@ function expenseValueForView(x){
 function salaryFor(uid,month=monthKey()){
  return Number(data.settings.find(s=>s.user_id===uid&&s.month===month)?.salary||0)
 }
+function extraIncomeFor(uid,month=monthKey()){
+ return data.incomes.filter(x=>x.user_id===uid&&x.month===month).reduce((s,x)=>s+Number(x.value||0),0)
+}
+function incomeFor(uid,month=monthKey()){return salaryFor(uid,month)+extraIncomeFor(uid,month)}
+
 function totals(){
  const ex=filteredExpenses(),pd=filteredPending();
  const spent=ex.reduce((s,x)=>s+expenseValueForView(x),0);
  const pending=pd.reduce((s,x)=>s+(viewMode==='shared'?Number(x.value):itemShare(x,viewMode)),0);
- if(viewMode==='shared'){const salary=members.reduce((s,m)=>s+salaryFor(m.user_id),0);return{salary,spent,pending,remaining:salary-spent,free:salary-spent-pending};}
- const salary=salaryFor(viewMode);
+ if(viewMode==='shared'){const salary=members.reduce((s,m)=>s+incomeFor(m.user_id),0);return{salary,spent,pending,remaining:salary-spent,free:salary-spent-pending};}
+ const salary=incomeFor(viewMode);
  return{salary,spent,pending,remaining:salary-spent,free:salary-spent-pending}
 }
 function setSync(t){syncStatus.textContent=t}
@@ -349,17 +355,18 @@ async function loadCloud(){
  if(!household)return;
  setSync('Sincronizando...');
  const months=sixMonths(),first=months[0];
- const [mr,st,ex,pd]=await Promise.all([
+ const [mr,st,ex,pd,inc]=await Promise.all([
    sb.from('household_members').select('user_id,display_name').eq('household_id',household.id).order('created_at',{ascending:true}),
    sb.from('member_settings').select('*').eq('household_id',household.id).gte('month',first),
    sb.from('expenses').select('*').eq('household_id',household.id).gte('month',first).order('created_at',{ascending:true}),
-   sb.from('pending_items').select('*').eq('household_id',household.id).eq('paid',false).order('created_at',{ascending:true})
+   sb.from('pending_items').select('*').eq('household_id',household.id).eq('paid',false).order('created_at',{ascending:true}),
+   sb.from('extra_income').select('*').eq('household_id',household.id).gte('month',first).order('created_at',{ascending:true})
  ]);
- if(mr.error||st.error||ex.error||pd.error){
-   console.warn(mr.error,st.error,ex.error,pd.error);setSync('Erro ao sincronizar');return;
+ if(mr.error||st.error||ex.error||pd.error||inc.error){
+   console.warn(mr.error,st.error,ex.error,pd.error,inc.error);setSync('Erro ao sincronizar');return;
  }
  members=mr.data||[];me=members.find(x=>x.user_id===session.user.id)||null;
- data.settings=st.data||[];data.expenses=ex.data||[];data.pending=pd.data||[];
+ data.settings=st.data||[];data.expenses=ex.data||[];data.pending=pd.data||[];data.incomes=inc.data||[];
  if(!viewMode||(!members.some(m=>m.user_id===viewMode)&&viewMode!=='shared'))viewMode=session.user.id;
  sharedLabel.textContent=`👥 ${household.name} • ${members.length} pessoa${members.length===1?'':'s'}`;
   inviteDisplay.textContent=household.invite_code?`Código para entrar: ${household.invite_code}`:'Código de convite indisponível';
@@ -372,6 +379,7 @@ function subscribeRealtime(){
   .on('postgres_changes',{event:'*',schema:'public',table:'expenses',filter:'household_id=eq.'+household.id},loadCloud)
   .on('postgres_changes',{event:'*',schema:'public',table:'pending_items',filter:'household_id=eq.'+household.id},loadCloud)
   .on('postgres_changes',{event:'*',schema:'public',table:'member_settings',filter:'household_id=eq.'+household.id},loadCloud)
+  .on('postgres_changes',{event:'*',schema:'public',table:'extra_income',filter:'household_id=eq.'+household.id},loadCloud)
   .on('postgres_changes',{event:'*',schema:'public',table:'household_members',filter:'household_id=eq.'+household.id},loadCloud)
   .subscribe();
  clearInterval(refreshTimer);refreshTimer=setInterval(loadCloud,12000);
@@ -388,28 +396,28 @@ function renderSummary(){
  if(viewMode==='shared'){
    heroKicker.textContent='Quanto vocês ainda podem gastar neste mês';
    remaining.textContent=money(t.remaining);
-   salaryLabel.textContent='Salários somados';salary.textContent=money(t.salary);
+   salaryLabel.textContent='Entradas dos dois';salary.textContent=money(t.salary);
    spentLabel.textContent='Gastos dos dois';spent.textContent=money(t.spent);
    pendingLabel.textContent='Total a pagar';pending.textContent=money(t.pending);
    summaryTitle.textContent='Resumo de Nós dois';
-   sumSalaryLabel.textContent='Salários dos dois';sSalary.textContent=money(t.salary);
+   sumSalaryLabel.textContent='Entradas dos dois';sSalary.textContent=money(t.salary);
    sumSpentLabel.textContent='Total gasto';sSpent.textContent=money(t.spent);
    sumFreeLabel.textContent='Sobra após pendências';sFree.textContent=money(t.free);
    const pct=t.salary>0?Math.min(100,Math.round(t.spent/t.salary*100)):0;
    progressBar.style.width=pct+'%';
-   progressText.textContent=t.salary>0?`${pct}% da renda total dos dois utilizada`:'Os salários ainda não foram informados';
+   progressText.textContent=t.salary>0?`${pct}% da renda total dos dois utilizada`:'Nenhuma entrada informada neste mês';
  }else{
    heroKicker.textContent=`Quanto ${name} ainda pode gastar neste mês`;
    remaining.textContent=money(t.remaining);
-   salaryLabel.textContent='Salário do mês';salary.textContent=money(t.salary);
+   salaryLabel.textContent='Entradas do mês';salary.textContent=money(t.salary);
    spentLabel.textContent='Já gasto (com sua parte)';spent.textContent=money(t.spent);
    pendingLabel.textContent='Ainda a pagar';pending.textContent=money(t.pending);
    summaryTitle.textContent=`Resumo de ${name}`;
-   sumSalaryLabel.textContent='Salário';sSalary.textContent=money(t.salary);
+   sumSalaryLabel.textContent='Entradas';sSalary.textContent=money(t.salary);
    sumSpentLabel.textContent='Total considerado';sSpent.textContent=money(t.spent);
    sumFreeLabel.textContent='Sobra após pendências';sFree.textContent=money(t.free);
    const pct=t.salary>0?Math.min(100,Math.round(t.spent/t.salary*100)):0;
-   progressBar.style.width=pct+'%';progressText.textContent=t.salary>0?`${pct}% do salário utilizado`:'Salário ainda não informado';
+   progressBar.style.width=pct+'%';progressText.textContent=t.salary>0?`${pct}% das entradas utilizadas`:'Nenhuma entrada informada neste mês';
  }
  const own=viewMode===session.user.id;
  salaryBtn.textContent=own?'Meu salário':'Meu salário';
@@ -481,6 +489,18 @@ async function saveSalary(){
  const {error}=await sb.from('member_settings').upsert({household_id:household.id,user_id:session.user.id,month:monthKey(),salary:v},{onConflict:'household_id,user_id,month'});
  if(error)return alert(error.message);closeModal();await loadCloud()
 }
+function openIncome(){
+ openModal('Adicionar dinheiro',`<div class="field"><label>De onde veio o dinheiro?</label><input id="iName" placeholder="Ex.: Venda, extra, presente"></div><div class="field"><label>Valor recebido</label><input id="iValue" type="number" step="0.01" placeholder="0,00"></div><div class="meta" style="margin-bottom:12px">Esse valor será somado às suas entradas deste mês, além do salário.</div><div class="sheet-actions"><button class="btn light" onclick="closeModal()">Cancelar</button><button class="btn primary" onclick="saveIncome()">Adicionar dinheiro</button></div>`)
+}
+async function saveIncome(){
+ const n=iName.value.trim(),v=Number(iValue.value||0);
+ if(!n||v<=0)return alert('Informe de onde veio o dinheiro e o valor.');
+ const payload={household_id:household.id,user_id:session.user.id,name:n,value:v,month:monthKey()};
+ const {error}=await sb.from('extra_income').insert(payload);
+ if(error)return alert(error.message);
+ closeModal();await loadCloud();
+}
+
 function openExpense(){
  openModal('Adicionar gasto',`<div class="field"><label>O que foi gasto?</label><input id="fName" placeholder="Ex.: Mercado"></div><div class="row"><div class="field"><label>Valor</label><input id="fValue" type="number" step="0.01" placeholder="0,00"></div><div class="field"><label>Categoria</label><select id="fCat"><option>Alimentação</option><option>Transporte</option><option>Casa</option><option>Lazer</option><option>Saúde</option><option>Compras</option><option>Outros</option></select></div></div><div class="meta" style="margin-bottom:12px">O gasto ficará automaticamente na sua conta e também entrará no total de <b>Nós dois</b>.</div><div class="sheet-actions"><button class="btn light" onclick="closeModal()">Cancelar</button><button class="btn primary" onclick="saveExpense()">Adicionar</button></div>`)
 }
