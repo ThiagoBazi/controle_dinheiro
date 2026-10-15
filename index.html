@@ -131,6 +131,15 @@ button:disabled{opacity:.55;cursor:wait}input,select{font-size:16px!important}bu
 .people-tabs{padding-bottom:10px;gap:7px}.person-tab{padding:9px 13px;font-size:13px}
 @media(max-width:360px){.brand h1{font-size:20px}.brand{gap:8px}.brand-icon{width:35px;height:35px}.workspace-info{align-items:flex-start;flex-direction:column}}
 
+
+/* Menu à esquerda e título centralizado. */
+.topbar{display:grid;grid-template-columns:44px minmax(0,1fr) 44px;align-items:center;gap:8px}
+.topbar .brand{grid-column:2;grid-row:1;justify-content:center;gap:8px}
+.topbar .brand-icon{display:none}
+.topbar .brand h1{font-size:22px;text-align:center}
+.topbar .top-menu{grid-column:1;grid-row:1;justify-self:start}
+.top-menu-panel{left:0;right:auto;text-align:center}
+.top-menu-panel button{text-align:center}
 </style>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
@@ -161,7 +170,7 @@ button:disabled{opacity:.55;cursor:wait}input,select{font-size:16px!important}bu
  <div class="topbar">
   <div class="brand"><span class="brand-icon" aria-hidden="true"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="5" width="18" height="15" rx="4"/><path d="M17 10h4v5h-4a2.5 2.5 0 0 1 0-5Z"/><path d="M6 5V4a1 1 0 0 1 1-1h10"/></svg></span><h1>Meu Dinheiro</h1></div>
   <details class="top-menu" id="topMenu">
-   <summary aria-label="Abrir menu" title="Menu"><svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/></svg></summary>
+   <summary aria-label="Abrir menu" title="Menu"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16"/></svg></summary>
    <div class="top-menu-panel">
     <span class="menu-heading">Sua conta</span>
     <button type="button" id="salaryBtn" onclick="document.getElementById('topMenu').open=false;openSalary()">Meu salário</button>
@@ -699,5 +708,16 @@ window.addEventListener('unhandledrejection',event=>{notice(errorText(event.reas
 if('serviceWorker'in navigator)navigator.serviceWorker.register('./sw.js',{updateViaCache:'none'}).then(r=>r.update()).catch(()=>{});
 </script>
 <p class="version">Meu Dinheiro · Correção v12 · Conexão original</p>
+<script>
+// Fecha ao tocar fora e também pela tecla Escape.
+document.addEventListener('pointerdown',event=>{
+ const menu=document.getElementById('topMenu');
+ if(menu?.open&&!menu.contains(event.target))menu.open=false;
+});
+document.addEventListener('keydown',event=>{
+ const menu=document.getElementById('topMenu');
+ if(event.key==='Escape'&&menu?.open){menu.open=false;menu.querySelector('summary').focus();}
+});
+</script>
 </body>
 </html>
