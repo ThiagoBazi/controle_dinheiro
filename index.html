@@ -33,6 +33,24 @@
 .auth-mark svg{width:25px;height:25px}
 #recentList .item-actions,#recentList .chip.author{display:none}
 .item-main strong{font-size:14px}.meta{font-size:11px}.chip{font-size:10px}.nav button{font-size:11px}
+
+/* Valores inteiros no celular e recebimentos separados dos gastos. */
+.quick{grid-template-columns:repeat(2,minmax(0,1fr))}
+.hero-metric strong{white-space:nowrap;overflow-wrap:normal;word-break:normal}
+.income-area{margin-top:23px;padding-top:19px;border-top:1px solid var(--line);display:flex;flex-direction:column;gap:13px}
+.income-area strong{display:block;font-size:13px;font-weight:650;color:var(--text)}
+.income-area span{display:block;margin-top:5px;font-size:11px;line-height:1.6;color:var(--muted)}
+.income-area .btn{display:flex;align-items:center;justify-content:center;gap:8px;background:#f0f8f5;color:#187761;border-color:#dceee6;font-size:12px;min-height:45px;width:100%}
+.income-area .btn:hover{background:#e4f2eb}
+@media(max-width:760px){
+ .hero-grid{grid-template-columns:1fr;gap:0;padding-top:8px}
+ .hero-metric,.hero-metric:first-child,.hero-metric:last-child{display:flex;align-items:center;justify-content:space-between;gap:12px;border-left:0;border-bottom:1px solid #ffffff0c;padding:12px 0}
+ .hero-metric:last-child{border-bottom:0;padding-bottom:0}
+ .hero-metric span{font-size:11px;min-height:0;flex-shrink:0}
+ .hero-metric strong{font-size:17px;margin-top:0;letter-spacing:-.3px}
+ .quick .btn{font-size:12px}
+}
+@media(max-width:350px){.hero-metric strong{font-size:15px}.hero-metric span{font-size:10px}}
 </style>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
@@ -96,7 +114,6 @@
 
   <div class="quick">
    <button class="btn primary" onclick="openExpense()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 17 17 7M7 7h10v10"/></svg><span>Novo gasto</span></button>
-   <button class="btn light income-action" onclick="openIncome()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg><span>Entrada</span></button>
    <button class="btn light pending-action" onclick="openPending()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="3"/><path d="M7 3v4m10-4v4M3 11h18M8 15h2m4 0h2m-8 3h2"/></svg><span>A pagar</span></button>
   </div>
 
@@ -110,6 +127,10 @@
     </div>
     <div class="progress"><div id="progressBar"></div></div>
     <div class="progress-label" id="progressText"></div>
+    <div class="income-area">
+     <div><strong>Recebeu dinheiro?</strong><span>Registre extras, vendas ou outros valores recebidos.</span></div>
+     <button class="btn light" onclick="openIncome()"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>Adicionar dinheiro</button>
+    </div>
    </div>
    <div class="card">
     <h2>Últimos gastos</h2>
