@@ -104,6 +104,7 @@ button{cursor:pointer}
  .app{padding:25px 22px 35px}.nav{position:static;background:transparent;border:0;margin-top:17px}.nav-inner{max-width:none;display:flex;justify-content:center;gap:9px}.nav button{background:#fff;border:1px solid var(--line);border-radius:12px;padding:10px 22px}
 }
 </style>
+<script src="./config.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
@@ -111,12 +112,12 @@ button{cursor:pointer}
 <div class="auth-screen" id="authScreen">
  <div class="auth-card">
   <h1>Meu Dinheiro</h1>
-  <p id="authText">Cada pessoa tem sua conta, mas vocês podem compartilhar os mesmos gastos.</p>
+  <p id="authText">Organize o dinheiro do casal: salários, gastos, contas e gráficos em um só lugar. Teste por 7 dias; depois, R$ 14,90/mês para duas pessoas.</p>
   <div id="loginBox">
    <div class="field"><label>Seu nome</label><input id="authName" placeholder="Ex.: Thiago"></div>
    <div class="field"><label>E-mail</label><input id="authEmail" type="email" autocomplete="email"></div>
    <div class="field"><label>Senha</label><input id="authPassword" type="password" autocomplete="current-password"></div>
-   <div class="auth-actions"><button class="btn light" onclick="signUp()">Criar conta</button><button class="btn primary" onclick="signIn()">Entrar</button></div>
+   <p><label><input type="checkbox" id="consent"> Li os <a href="./termos.html" target="_blank">termos</a> e a <a href="./privacidade.html" target="_blank">política de privacidade</a>.</label></p><button class="mini" onclick="resetPassword()">Esqueci minha senha</button><div class="auth-actions"><button class="btn light" onclick="signUp()">Criar conta</button><button class="btn primary" onclick="signIn()">Entrar</button></div>
   </div>
   <div id="houseBox" class="hidden">
    <div class="field"><label>Nome do espaço compartilhado</label><input id="houseName" value="Nosso Dinheiro"></div>
@@ -132,7 +133,7 @@ button{cursor:pointer}
   <div class="brand"><h1>Meu Dinheiro</h1><small>Controle simples, individual e compartilhado</small></div>
   <div class="top-actions">
    <button class="btn light" onclick="shareInvite()">Compartilhar</button>
-   <button class="btn light" id="salaryBtn" onclick="openSalary()">Meu salário</button>
+   <button class="btn light" onclick="openAccount()">Minha assinatura</button><button class="btn light" id="salaryBtn" onclick="openSalary()">Meu salário</button>
   </div>
  </div>
 
@@ -229,9 +230,7 @@ button{cursor:pointer}
 </div>
 
 <script>
-const SUPABASE_URL="https://qpclvpnmlnwhrqshsuld.supabase.co";
-const SUPABASE_KEY="sb_publishable_e6-AsL3fWG2uV8WUsQogrQ_u8InKJr7";
-const sb=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
+const sb=window.supabase.createClient(window.APP_CONFIG.supabaseUrl,window.APP_CONFIG.supabaseKey);
 const PROFILE_KEY='meu_dinheiro_profile_name_v7';
 const LEGACY_PROFILE_KEY='meu_dinheiro_profile_name';
 let session=null,household=null,members=[],me=null,viewMode=null;
@@ -298,9 +297,11 @@ function setSync(t){syncStatus.textContent=t}
 function setLocalName(n){if(n){localStorage.setItem(PROFILE_KEY,n);localStorage.setItem(LEGACY_PROFILE_KEY,n)}}
 
 async function signUp(){
+ if(!APP_CONFIG.legalReady)return alert('Cadastro comercial ainda não ativado. Configure os termos, a privacidade e o suporte antes de abrir inscrições.');
  const name=authName.value.trim(),email=authEmail.value.trim(),password=authPassword.value;
+ if(!document.getElementById('consent').checked)return alert('Leia e aceite os termos e a política de privacidade.');
  if(!name)return alert('Informe seu nome.');
- if(!email||password.length<6)return alert('Informe e-mail e uma senha com pelo menos 6 caracteres.');
+ if(!email||password.length<10)return alert('Informe e-mail e uma senha com pelo menos 10 caracteres.');
  setLocalName(name);
  const {data:r,error}=await sb.auth.signUp({email,password,options:{data:{name}}});
  if(error)return alert(error.message);
@@ -318,10 +319,10 @@ async function logout(){await sb.auth.signOut();location.reload()}
 
 async function afterLogin(){
  const {data:m,error}=await sb.from('household_members').select('household_id,display_name,households(id,name,invite_code)').eq('user_id',session.user.id).limit(1);
- if(error)console.warn(error);
+ if(error){alert("Não foi possível carregar sua conta. Tente novamente.");return;}
  if(m&&m.length){
    household=m[0].households;
-   const preferred=localStorage.getItem(PROFILE_KEY)||localStorage.getItem(LEGACY_PROFILE_KEY)||session.user.user_metadata?.name;
+   const preferred=session.user.user_metadata?.name;
    if(preferred){try{await sb.rpc('set_my_display_name_v7',{p_household_id:household.id,p_display_name:preferred})}catch(e){console.warn(e)}}
    authScreen.classList.add('hidden');
    await loadCloud();subscribeRealtime();
@@ -330,7 +331,7 @@ async function afterLogin(){
    authText.textContent='Crie o espaço de vocês ou entre usando o código que recebeu.';
  }
 }
-function makeCode(){return Math.random().toString(36).slice(2,8).toUpperCase()}
+function makeCode(){return ''} // O servidor gera o convite seguro.
 async function createHouse(){
  const name=houseName.value.trim()||'Nosso Dinheiro',display=myName();
  const {data:r,error}=await sb.rpc('create_household_v7',{p_name:name,p_invite_code:makeCode(),p_display_name:display});
@@ -346,24 +347,33 @@ async function joinHouse(){
 }
 async function shareInvite(){
  if(!household)return;
+ const {data:h,error}=await sb.rpc('rotate_invite',{hid:household.id});
+ if(error)return alert(error.message);household=h;
  const text=`Entre no nosso Meu Dinheiro. Código do espaço: ${household.invite_code}\n${location.origin+location.pathname}`;
  if(navigator.share){try{await navigator.share({title:'Meu Dinheiro',text});return}catch(e){}}
  try{await navigator.clipboard.writeText(text);alert('Convite copiado.')}catch{prompt('Copie o convite:',text)}
 }
 
+async function readAll(table,apply){
+ let result=[];
+ for(let offset=0;;offset+=500){
+  const {data:rows,error}=await apply(sb.from(table).select('*').eq('household_id',household.id)).range(offset,offset+499);
+  if(error)return {data:null,error};result.push(...rows);if(rows.length<500)return {data:result,error:null};
+ }
+}
 async function loadCloud(){
  if(!household)return;
  setSync('Sincronizando...');
  const months=sixMonths(),first=months[0];
  const [mr,st,ex,pd,inc]=await Promise.all([
-   sb.from('household_members').select('user_id,display_name').eq('household_id',household.id).order('created_at',{ascending:true}),
-   sb.from('member_settings').select('*').eq('household_id',household.id).gte('month',first),
-   sb.from('expenses').select('*').eq('household_id',household.id).gte('month',first).order('created_at',{ascending:true}),
-   sb.from('pending_items').select('*').eq('household_id',household.id).eq('paid',false).order('created_at',{ascending:true}),
-   sb.from('extra_income').select('*').eq('household_id',household.id).gte('month',first).order('created_at',{ascending:true})
+   readAll('household_members',q=>q.order('created_at').order('user_id')),
+   readAll('member_settings',q=>q.gte('month',first).order('user_id').order('month')),
+   readAll('expenses',q=>q.gte('month',first).order('created_at').order('id')),
+   readAll('pending_items',q=>q.eq('paid',false).order('created_at').order('id')),
+   readAll('extra_income',q=>q.gte('month',first).order('created_at').order('id'))
  ]);
  if(mr.error||st.error||ex.error||pd.error||inc.error){
-   console.warn(mr.error,st.error,ex.error,pd.error,inc.error);setSync('Erro ao sincronizar');return;
+   console.warn(mr.error,st.error,ex.error,pd.error);setSync('Erro ao sincronizar');return;
  }
  members=mr.data||[];me=members.find(x=>x.user_id===session.user.id)||null;
  data.settings=st.data||[];data.expenses=ex.data||[];data.pending=pd.data||[];data.incomes=inc.data||[];
@@ -382,7 +392,7 @@ function subscribeRealtime(){
   .on('postgres_changes',{event:'*',schema:'public',table:'extra_income',filter:'household_id=eq.'+household.id},loadCloud)
   .on('postgres_changes',{event:'*',schema:'public',table:'household_members',filter:'household_id=eq.'+household.id},loadCloud)
   .subscribe();
- clearInterval(refreshTimer);refreshTimer=setInterval(loadCloud,12000);
+ clearInterval(refreshTimer);refreshTimer=setInterval(loadCloud,60000);
 }
 
 function renderTabs(){
@@ -485,7 +495,7 @@ function openSalary(){
  openModal('Meu salário do mês',`<div class="field"><label>Quanto você recebe neste mês?</label><input id="fSalary" type="number" step="0.01" value="${current||''}" placeholder="Ex.: 2000"></div><div class="meta" style="margin-bottom:12px">Cada pessoa informa o próprio salário. O salário não é somado ao da outra pessoa na sua visão individual.</div><div class="sheet-actions"><button class="btn light" onclick="closeModal()">Cancelar</button><button class="btn primary" onclick="saveSalary()">Salvar</button></div>`)
 }
 async function saveSalary(){
- const v=Number(fSalary.value||0);
+ const v=Number(fSalary.value||0);if(!Number.isFinite(v)||v<0)return alert("Informe um salário válido.");
  const {error}=await sb.from('member_settings').upsert({household_id:household.id,user_id:session.user.id,month:monthKey(),salary:v},{onConflict:'household_id,user_id,month'});
  if(error)return alert(error.message);closeModal();await loadCloud()
 }
@@ -494,7 +504,7 @@ function openIncome(){
 }
 async function saveIncome(){
  const n=iName.value.trim(),v=Number(iValue.value||0);
- if(!n||v<=0)return alert('Informe de onde veio o dinheiro e o valor.');
+ if(!n||(!Number.isFinite(v)||v<=0))return alert('Informe de onde veio o dinheiro e o valor.');
  const payload={household_id:household.id,user_id:session.user.id,name:n,value:v,month:monthKey()};
  const {error}=await sb.from('extra_income').insert(payload);
  if(error)return alert(error.message);
@@ -506,7 +516,7 @@ function openExpense(){
 }
 async function saveExpense(){
  const n=fName.value.trim(),v=Number(fValue.value||0);
- if(!n||v<=0)return alert('Informe o nome e o valor.');
+ if(!n||(!Number.isFinite(v)||v<=0))return alert('Informe o nome e o valor.');
  const payload={household_id:household.id,name:n,value:v,category:fCat.value,month:monthKey(),author_id:session.user.id,author_name:myName(),owner_scope:'member',owner_user_id:session.user.id};
  const {error}=await sb.from('expenses').insert(payload);if(error)return alert(error.message);closeModal();await loadCloud()
 }
@@ -514,22 +524,20 @@ function openPending(){
  openModal('Adicionar conta a pagar',`<div class="field"><label>O que precisa pagar?</label><input id="pName" placeholder="Ex.: Internet, tênis"></div><div class="field"><label>Valor</label><input id="pValue" type="number" step="0.01" placeholder="0,00"></div><div class="meta" style="margin-bottom:12px">A conta ficará automaticamente na sua conta e também entrará no total de <b>Nós dois</b>.</div><div class="sheet-actions"><button class="btn light" onclick="closeModal()">Cancelar</button><button class="btn primary" onclick="savePending()">Adicionar</button></div>`)
 }
 async function savePending(){
- const n=pName.value.trim(),v=Number(pValue.value||0);if(!n||v<=0)return alert('Informe o nome e o valor.');
+ const n=pName.value.trim(),v=Number(pValue.value||0);if(!n||(!Number.isFinite(v)||v<=0))return alert('Informe o nome e o valor.');
  const payload={household_id:household.id,name:n,value:v,paid:false,author_id:session.user.id,author_name:myName(),owner_scope:'member',owner_user_id:session.user.id};
  const {error}=await sb.from('pending_items').insert(payload);if(error)return alert(error.message);closeModal();await loadCloud()
 }
 async function payPending(id){
- const p=data.pending.find(x=>x.id===id);if(!p)return;if(!confirm('Marcar esta conta como paga?'))return;
- const {error:e1}=await sb.from('expenses').insert({household_id:household.id,name:p.name,value:p.value,category:'Conta paga',month:monthKey(),author_id:p.author_id||session.user.id,author_name:p.author_name||myName(),owner_scope:p.owner_scope||'member',owner_user_id:p.owner_user_id});
- if(e1)return alert(e1.message);
- const {error:e2}=await sb.from('pending_items').update({paid:true}).eq('id',id);if(e2)return alert(e2.message);await loadCloud()
+ if(!confirm('Marcar esta conta como paga?'))return;
+ const {error}=await sb.rpc('pay_pending',{pid:id});if(error)return alert(error.message);await loadCloud();
 }
 function editExpense(id){
  const x=data.expenses.find(e=>e.id===id);if(!x)return;
  openModal('Editar gasto',`<div class="field"><label>Descrição</label><input id="eName" value="${escapeHtml(x.name)}"></div><div class="row"><div class="field"><label>Valor</label><input id="eValue" type="number" step="0.01" value="${x.value}"></div><div class="field"><label>Categoria</label><select id="eCat">${['Alimentação','Transporte','Casa','Lazer','Saúde','Compras','Outros','Conta paga'].map(c=>`<option ${x.category===c?'selected':''}>${c}</option>`).join('')}</select></div></div><div class="sheet-actions"><button class="btn light" onclick="closeModal()">Cancelar</button><button class="btn primary" onclick="saveExpenseEdit('${id}')">Salvar</button></div>`)
 }
 async function saveExpenseEdit(id){
- const n=eName.value.trim(),v=Number(eValue.value||0);if(!n||v<=0)return alert('Informe nome e valor.');
+ const n=eName.value.trim(),v=Number(eValue.value||0);if(!n||(!Number.isFinite(v)||v<=0))return alert('Informe nome e valor.');
  const {error}=await sb.from('expenses').update({name:n,value:v,category:eCat.value}).eq('id',id);
  if(error)return alert(error.message);closeModal();await loadCloud()
 }
@@ -539,7 +547,7 @@ function editPending(id){
  openModal('Editar conta a pagar',`<div class="field"><label>Descrição</label><input id="epName" value="${escapeHtml(x.name)}"></div><div class="field"><label>Valor</label><input id="epValue" type="number" step="0.01" value="${x.value}"></div><div class="sheet-actions"><button class="btn light" onclick="closeModal()">Cancelar</button><button class="btn primary" onclick="savePendingEdit('${id}')">Salvar</button></div>`)
 }
 async function savePendingEdit(id){
- const n=epName.value.trim(),v=Number(epValue.value||0);if(!n||v<=0)return alert('Informe nome e valor.');
+ const n=epName.value.trim(),v=Number(epValue.value||0);if(!n||(!Number.isFinite(v)||v<=0))return alert('Informe nome e valor.');
  const {error}=await sb.from('pending_items').update({name:n,value:v}).eq('id',id);
  if(error)return alert(error.message);closeModal();await loadCloud()
 }
@@ -584,10 +592,17 @@ function renderCharts(){
  else graphTip.textContent=`Na visão de ${viewName()}, o mês mostra tudo que efetivamente consumiu o dinheiro dessa conta. Contas marcadas como pagas também entram como gasto.`;
 }
 
+sb.auth.onAuthStateChange((event,newSession)=>{
+ session=newSession;
+ if(event==='PASSWORD_RECOVERY')setTimeout(()=>openModal('Nova senha',`<input type="password" id="newPassword" minlength="10" placeholder="Ao menos 10 caracteres"><button class="btn primary" onclick="updatePassword()">Salvar senha</button>`),0);
+});
 (async()=>{
  const {data:r}=await sb.auth.getSession();session=r.session;
  if(session)await afterLogin();
 })();
+</script>
+<script src='./saas.js'></script>
+<script>
 if('serviceWorker'in navigator)navigator.serviceWorker.register('./sw.js').catch(()=>{});
 </script>
 </body>
